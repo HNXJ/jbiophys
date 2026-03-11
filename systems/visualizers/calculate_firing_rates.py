@@ -3,6 +3,8 @@ import jax.numpy as jnp
 import jaxley as jx
 import optax
 
+from .detect_spikes import detect_spikes
+
 def calculate_firing_rates(traces, dt, threshold=-20.0):
     """Computes firing rates (Hz) for a batch of traces (Batch, Cells, Time)."""
     if traces.ndim == 2: # Single batch
