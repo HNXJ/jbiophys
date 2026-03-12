@@ -2,6 +2,23 @@ import jax
 import jax.numpy as jnp
 import jaxley as jx
 import optax
+from typing import Callable, Any
+from flax.struct import dataclass
+
+@dataclass
+class GSDRState:
+    inner_state: Any
+    params_opt: Any
+    inner_state_opt: Any
+    loss_opt: float
+    a: float
+    a_opt: float
+    lambda_d: float
+    step_count: int
+    consecutive_unchanged_epochs: int
+    last_optimal_change_step: int
+    var_sup_ema: float = 1.0
+    var_unsup_ema: float = 1.0
 
 def AGSDR(
     inner_optimizer: optax.GradientTransformation,
@@ -17,9 +34,8 @@ def AGSDR(
     alpha_max: float = 0.9
 ) -> optax.GradientTransformation:
     """
-    Adaptive GSDR (AGSDR) v2.
-    Alpha is determined by EMA-smoothed inverse ratio of update variances.
-    Includes an alpha floor to prevent stochastic deadlock.
+    Adaptive GSDR (AGSDR) v2.5 with 'Alpha Jolt' protocol.
+    Forces alpha=0 for 1 trial after state change to stabilize gradients.
     """
     def init_fn(params):
         inner_state = inner_optimizer.init(params)
@@ -72,13 +88,9 @@ def AGSDR(
             _params, _new_params_opt, _new_inner_state_opt, _current_step = operand
             time_since_last_change = jnp.maximum(0, _current_step - step_of_last_optimal_change)
             
-            # Verbose Warning for Stuck States
-            def stuck_warning(step):
-                jax.debug.print("⚠️ WARNING: Optimizer stuck for {s} epochs. Triggering exploration jolt.", s=step)
+            # --- ALPHA JOLT Protocol ---
+            is_jolt_epoch = (time_since_last_change == 0)
             
-            jax.lax.cond((time_since_last_change % checkpoint_n == 0) & (time_since_last_change > 0), 
-                         stuck_warning, lambda x: None, time_since_last_change)
-
             effective_lambda_d = (time_since_last_change**2) * (1.0 - jnp.exp(-(time_since_last_change) / tau_a_growth))
 
             inner_opt_key, noise_key = jax.random.split(key, 2)
@@ -93,7 +105,6 @@ def AGSDR(
             else:
                 delta = jax.tree.map(lambda n, p: n * p, delta_d, _params)
 
-            # Adaptive Alpha with EMA Smoothing and Deadlock Prevention
             flat_inner = jnp.concatenate([jnp.ravel(x) for x in jax.tree.leaves(inner_updates)])
             flat_delta = jnp.concatenate([jnp.ravel(x) for x in jax.tree.leaves(delta)])
             curr_var_sup = jnp.var(flat_inner)
@@ -104,19 +115,10 @@ def AGSDR(
             
             epsilon = 1e-8
             denom = new_var_sup_ema + new_var_unsup_ema + epsilon
-            # If denom is very small, we are likely stuck -> favor exploration
             next_a = jnp.where(denom > 1e-6, new_var_sup_ema / denom, 0.8)
             
-            # Enforce Stochastic Floor
-            next_a = jnp.clip(next_a, alpha_min, alpha_max)
-            
-            # Alpha Floor Warning
-            jax.lax.cond(next_a <= alpha_min, 
-                         lambda: jax.debug.print("⚠️ WARNING: AGSDR Alpha locked at floor ({f}). Supervised variance is too low.", f=alpha_min), 
-                         lambda: None)
-            
-            # Dampening barrier
-            next_a = jnp.where(jnp.isnan(next_a) | jnp.isinf(next_a), state.a, next_a)
+            # Apply Jolt: next_a=0 if is_jolt_epoch, otherwise clipped to floor
+            next_a = jnp.where(is_jolt_epoch, 0.0, jnp.clip(next_a, alpha_min, alpha_max))
             
             combined_updates = jax.tree.map(lambda d, g: effective_lambda_d * (next_a * d + (1.0 - next_a) * g), delta, inner_updates)
 
