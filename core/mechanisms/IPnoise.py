@@ -67,4 +67,8 @@ class IPnoise(jx.channels.Channel):
         return -current
 
     def init_state(self, states, v, params, delta_t):
-        return {"last_pulse_t": -1000.0, "next_interval": params["poisson_l"], "step": 0.0}
+        # Stagger initialization to prevent a 'First-Sample Spark'
+        # Generate a random initial last_pulse_t between -poisson_l and 0
+        key = jax.random.PRNGKey(params["seed"].astype(int))
+        stagger = jax.random.uniform(key, minval=-params["poisson_l"], maxval=0.0)
+        return {"last_pulse_t": stagger, "next_interval": params["poisson_l"], "step": 0.0}
