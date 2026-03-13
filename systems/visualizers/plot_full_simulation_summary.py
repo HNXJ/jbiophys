@@ -2,6 +2,10 @@ import jax
 import jax.numpy as jnp
 import jaxley as jx
 import optax
+import matplotlib.pyplot as plt
+from scipy import signal
+from typing import Optional, Tuple
+import numpy as np
 
 def plot_full_simulation_summary(recorded_voltages, time_axis, dt_global,
                                  spike_threshold=-20.0,

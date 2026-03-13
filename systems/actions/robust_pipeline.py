@@ -22,7 +22,7 @@ from core.optimizers.AGSDR import AGSDR
 @jax.custom_jvp
 def sg_spike(x):
     """Surrogate Gradient Spiking function (float return)."""
-    return (x > 0).astype(jnp.float32)
+    return (x > 0).astype(x.dtype)
 
 @sg_spike.defjvp
 def sg_spike_jvp(primals, tangents):
