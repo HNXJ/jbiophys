@@ -98,6 +98,27 @@ class GradedGABAb(jx.synapses.Synapse):
     def compute_current(self, states, pre_v, post_v, params): 
         return params["gGABAb"] * states["sGABAb"] * (post_v - params["EGABAb"])
 
+class GradedNMDA(jx.synapses.Synapse):
+    """Graded NMDA Synapse with Magnesium Block."""
+    def __init__(self, g: float = 1.0, tauD_NMDA: float = 100.0):
+        super().__init__()
+        self.synapse_params = {
+            "gNMDA": g, "ENMDA": 0.0, "tauDNMDA": tauD_NMDA, "tauRNMDA": 2.0, 
+            "slopeNMDA": 5.0, "V_thNMDA": -20.0, "Mg": 1.0
+        }
+        self.synapse_states = {"sNMDA": 0.01}
+    def update_states(self, states, dt, pre_v, post_v, params):
+        s = states["sNMDA"]
+        activation = 0.5 * (1 + jnp.tanh((pre_v - params["V_thNMDA"]) / params["slopeNMDA"]))
+        d_s = (-s / params["tauDNMDA"]) + activation * ((1 - s) / params["tauRNMDA"])
+        new_s = s + d_s * dt
+        new_s = jnp.where(jnp.isnan(new_s) | jnp.isinf(new_s), s, new_s)
+        return {"sNMDA": new_s}
+    def compute_current(self, states, pre_v, post_v, params):
+        # Magnesium block factor
+        m_block = 1.0 / (1.0 + 0.28 * jnp.exp(-0.062 * post_v))
+        return params["gNMDA"] * states["sNMDA"] * m_block * (post_v - params["ENMDA"])
+
 def build_net_eig(num_e: int, num_ig: int, num_il: int, seed: Optional[int] = None):
     """
     Constructs a JAXley neural network with specified numbers of excitatory and inhibitory neurons.

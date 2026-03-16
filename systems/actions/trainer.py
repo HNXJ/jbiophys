@@ -37,12 +37,28 @@ def calculate_biophysical_metrics(network, voltages, dt, meta):
     return energy, per_area_fr
 
 def get_standardized_loss_fn(network: jx.Network, dt: float, target_fr: float = 15.0, t_max: float = 1000.0, meta: List = None):
-    """Refined loss with expanded aux for logging."""
+    """Refined loss with expanded aux for logging and memory efficiency."""
+    
+    num_neurons = len(list(network.cells))
+    # Memory Optimization: For large networks and long simulations, record from a representative subset
+    # 100 neurons is usually enough for a stable firing rate and kappa estimate.
+    if num_neurons > 100:
+        np.random.seed(42) # Deterministic subset
+        subset_indices = np.random.choice(num_neurons, size=100, replace=False).tolist()
+        recording_view = network.cell(subset_indices).branch(0).loc(0.0)
+        print(f"🧠 Memory Optimization: Recording from a subset of {len(subset_indices)} neurons for the loss.")
+    else:
+        recording_view = network.cell('all').branch(0).loc(0.0)
+        subset_indices = None
+
     def loss_fn(params: Dict[str, Any]):
-        network.cell('all').branch(0).loc(0.0).record('v')
+        recording_view.record('v')
+        # Integrate and get recorded traces
         voltages = jx.integrate(network, t_max=t_max, delta_t=dt, params=params)
         voltages = jnp.clip(jnp.nan_to_num(voltages, nan=0.0), -100.0, 100.0)
         
+        # Use full voltages for energy (it's already reduced by sum)
+        # Use the recorded subset for firing rate and kappa if applicable
         spike_train = calculate_spike_train(voltages)
         firing_rate = calculate_firing_rate(spike_train, dt)
         kappa = calculate_kappa(spike_train)
@@ -77,14 +93,15 @@ def run_standardized_trainer(
     lr: float = 1e-3,
     snapshot_freq: int = 10,
     t_max: float = 1000.0,
-    method: str = "Adam"
+    method: str = "Adam",
+    target_fr: float = 15.0
 ):
     """
     Standardized Trainer Pipeline.
     Returns: (ParamsList, Labels, TrainingLog)
     """
     dt = 0.1
-    loss_fn = get_standardized_loss_fn(net, dt, t_max=t_max, meta=meta)
+    loss_fn = get_standardized_loss_fn(net, dt, t_max=t_max, meta=meta, target_fr=target_fr)
     
     # Initialize Optimizer
     if method == "AGSDR":
@@ -108,6 +125,7 @@ def run_standardized_trainer(
     
     prev_params = opt_params
     deselections = 0
+    import gc
 
     for epoch in range(1, epochs + 1):
         (loss_val, aux), grads = jitted_grad_fn(opt_params)
@@ -139,6 +157,10 @@ def run_standardized_trainer(
             params_snapshots.append(opt_params)
             labels.append(f"t-{epoch}")
             print(f"Trial {epoch:03d} | Loss: {loss_val:.4f} | FR: {aux['firing_rate']:.2f}Hz | Change: {change:.2e}")
+        
+        # Memory Management
+        if epoch % 5 == 0:
+            gc.collect()
 
     print("✅ Training Concluded.")
     return params_snapshots, labels, training_log
