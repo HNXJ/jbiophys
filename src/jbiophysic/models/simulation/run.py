@@ -17,13 +17,19 @@ def run_simulation(
     """
     logger.info(f"Running simulation for T={config.t_max}ms with dt={config.dt}ms")
     
+    # Axis 11: Recording mandatory for integrate in 0.13.0
+    if brain.recordings.empty:
+        brain.record("v")
+    
     # We rely on Jaxley's internal error handling.
     # No silent zero-trace fallbacks are implemented here.
-    v_trace, currents, state = jx.integrate(
-        brain, 
-        t_max=config.t_max, 
-        dt=config.dt
+    # Axis 11: Jaxley 0.13.0 integrate returns only v_trace by default.
+    v_trace = jx.integrate(
+        brain,
+        t_max=config.t_max,
+        delta_t=config.dt
     )
+    currents, state = None, None
     logger.info("Integration successful.")
         
     return SimulationResult(

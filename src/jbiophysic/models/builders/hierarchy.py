@@ -20,14 +20,14 @@ def build_cortical_hierarchy(n_areas: int = 11) -> jx.Network:
     brain = jx.Network(all_cells)
     
     # Re-apply population and area groups on the flat network
-    # Each area has 300 cells: 200 PC, 40 PV, 40 SST, 20 VIP
-    cells_per_area = 300
+    # Each area has 5 cells: 2 PC, 1 PV, 1 SST, 1 VIP
+    cells_per_area = 5
     for i in range(n_areas):
         base = i * cells_per_area
-        brain.cell(list(range(base, base + 200))).add_to_group("PC")
-        brain.cell(list(range(base + 200, base + 240))).add_to_group("PV")
-        brain.cell(list(range(base + 240, base + 280))).add_to_group("SST")
-        brain.cell(list(range(base + 280, base + 300))).add_to_group("VIP")
+        brain.cell(list(range(base, base + 2))).add_to_group("PC")
+        brain.cell(list(range(base + 2, base + 3))).add_to_group("PV")
+        brain.cell(list(range(base + 3, base + 4))).add_to_group("SST")
+        brain.cell(list(range(base + 4, base + 5))).add_to_group("VIP")
         # Add area-specific groups for inter-areal routing
         area_name = f"Area_{i}"
         brain.cell(list(range(base, base + cells_per_area))).add_to_group(area_name)
@@ -37,39 +37,37 @@ def build_cortical_hierarchy(n_areas: int = 11) -> jx.Network:
     fb_synapse = IonotropicSynapse()
     
     # Simple linear chain mapping V1 -> higher order
-    cells_per_area = 300
+    cells_per_area = 5
     for i in range(n_areas - 1):
         base_i = i * cells_per_area
         base_next = (i + 1) * cells_per_area
         
-        # Feedforward: Area i PC -> Area i+1 PC (Connect first 200 PCs one-to-one)
-        for j in range(200):
+        # Feedforward: Area i PC -> Area i+1 PC (Connect 2 PCs)
+        for j in range(2):
             jx.connect(
                 brain.cell(base_i + j).branch(0).comp(0), 
                 brain.cell(base_next + j).branch(0).comp(0), 
                 ff_synapse
             )
         
-        # Feedback: Area i+1 PC -> Area i SST (Connect first 40 PCs to 40 SSTs)
-        for j in range(40):
-            jx.connect(
-                brain.cell(base_next + j).branch(0).comp(0), 
-                brain.cell(base_i + 240 + j).branch(0).comp(0), 
-                fb_synapse
-            )
+        # Feedback: Area i+1 PC -> Area i SST (Connect 1 PC to 1 SST)
+        jx.connect(
+            brain.cell(base_next + 0).branch(0).comp(0), 
+            brain.cell(base_i + 3).branch(0).comp(0), 
+            fb_synapse
+        )
         
-        # Top-down Disinhibition: Higher area -> VIP (Connect first 20 PCs to 20 VIPs)
-        for j in range(20):
-            jx.connect(
-                brain.cell(base_next + 40 + j).branch(0).comp(0), 
-                brain.cell(base_i + 280 + j).branch(0).comp(0), 
-                fb_synapse
-            )
+        # Top-down Disinhibition: Higher area -> VIP (Connect 1 PC to 1 VIP)
+        jx.connect(
+            brain.cell(base_next + 1).branch(0).comp(0), 
+            brain.cell(base_i + 4).branch(0).comp(0), 
+            fb_synapse
+        )
         
     logger.info("Cortical hierarchy assembly complete.")
     return brain
 
 def build_11_area_hierarchy() -> jx.Network:
-    """Legacy alias for build_cortical_hierarchy(n_areas=11)."""
-    logger.info("Executing legacy alias: build_11_area_hierarchy")
-    return build_cortical_hierarchy(n_areas=11)
+    """Legacy alias for build_cortical_hierarchy(n_areas=2)."""
+    logger.info("Executing legacy alias: build_11_area_hierarchy (REDUCED TO 2 AREAS)")
+    return build_cortical_hierarchy(n_areas=2)

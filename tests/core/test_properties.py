@@ -14,12 +14,12 @@ def test_hh_singularities():
     # Check at exactly -40.0 (alpha_m singularity)
     v_sing_m = jnp.array([-40.0])
     new_states_m = hh.update_states(states, dt, v_sing_m, params)
-    assert jnp.all(jnp.isfinite(new_states_m["m"]))
+    assert jnp.all(jnp.isfinite(new_states_m["HH_m"]))
     
     # Check at exactly -55.0 (alpha_n singularity)
     v_sing_n = jnp.array([-55.0])
     new_states_n = hh.update_states(states, dt, v_sing_n, params)
-    assert jnp.all(jnp.isfinite(new_states_n["n"]))
+    assert jnp.all(jnp.isfinite(new_states_n["HH_n"]))
 
 def test_nmda_monotonicity():
     """Checks that NMDA Mg-block is monotonic with respect to voltage."""

@@ -14,7 +14,7 @@ def test_hh_stability():
     
     new_states = hh.update_states(states, dt, v, params)
     
-    for gate in ["m", "h", "n"]:
+    for gate in ["HH_m", "HH_h", "HH_n"]:
         assert jnp.all(new_states[gate] >= 0.0)
         assert jnp.all(new_states[gate] <= 1.0)
     
@@ -49,7 +49,7 @@ def test_hh_singularities():
     v = jnp.array([-40.0, -55.0])
     new_states = hh.update_states(states, dt, v, params)
     
-    for gate in ["m", "h", "n"]:
+    for gate in ["HH_m", "HH_h", "HH_n"]:
         assert jnp.all(jnp.isfinite(new_states[gate]))
         assert jnp.all(new_states[gate] >= 0.0)
         assert jnp.all(new_states[gate] <= 1.0)

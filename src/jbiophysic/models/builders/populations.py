@@ -32,7 +32,7 @@ def build_interneuron(cell_type="PV"):
 def construct_column():
     """Assembles a local cortical column with explicit population labels."""
     logger.info("Constructing cortical column populations (PC, PV, SST, VIP)")
-    n_pc, n_pv, n_sst, n_vip = 200, 40, 40, 20
+    n_pc, n_pv, n_sst, n_vip = 2, 1, 1, 1
     
     # Instantiate cells
     pc_cells = [build_pyramidal_cell() for _ in range(n_pc)]

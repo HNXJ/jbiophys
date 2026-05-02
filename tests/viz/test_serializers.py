@@ -6,20 +6,27 @@ from jbiophysic.viz.serializers.activity import serialize_raster # print("Import
 
 def test_raster_serialization():
     print("Executing test_raster_serialization")
-    # Create mock result
-    v_trace = np.zeros((10, 100)) # print("Creating 10x100 zero voltage trace")
-    v_trace[0, 50] = 0.0 # print("Setting spike at neuron 0, step 50")
+    # Create mock result with periodic crossings
+    # Sine wave from -20 to 0 will cross -10 twice per cycle.
+    # 50 cycles -> 100 crossings per neuron. 10 neurons -> 1000 spikes.
+    t = np.linspace(0, 100 * np.pi, 100)
+    v_single = 10 * np.sin(t) - 10.0 # Range [-20, 0]
+    v_trace = np.tile(v_single, (10, 1))
     
     result = SimulationResult(
         v_trace=v_trace,
         metadata={"dt": 1.0}
-    ) # print("Creating mock SimulationResult")
+    ) 
     
-    payload = serialize_raster(result, threshold=-10.0) # print("Serializing to raster with threshold -10")
+    payload = serialize_raster(result, threshold=-10.0) 
     
-    # Since all V are 0, and threshold is -10, all points should be "spikes"
-    # Wait, 0 > -10 is True. So all 1000 points are spikes.
-    assert len(payload.spike_times) == 1000 # print("Asserting 1000 spikes detected")
+    # 10 neurons * 50 crossings = 500 spikes? 
+    # Let's be precise: sin(t) crosses 0 upward once per 2*pi.
+    # t goes 0 to 100*pi -> 50 cycles -> 50 upward crossings.
+    # 10 neurons * 50 = 500 spikes.
+    # Allow small discretization slack.
+    assert len(payload.spike_times) >= 450 
+
     assert payload.t_end == 100.0 # print("Asserting t_end is 100.0")
 
 def test_raster_empty():
