@@ -1,6 +1,21 @@
-# src/jbiophysic/__init__.py
-"""
-jbiophysic: JAX/Jaxley-based tools for exploratory cortical biophysics simulations and analysis.
-"""
-__version__ = "0.2.0"
-__author__ = "Hamed Nejat"
+"""JAX-native biophysical modeling and TFNE science-library kernels."""
+
+from .cells.izhikevich import IzhikevichParams, simulate_izhikevich
+from .cells.hh import HHParams, simulate_hh
+from .tfne.fields import TFNEGrid, make_regular_grid
+from .tfne.sources import gaussian_mollifier, project_sparse_currents, conservation_error
+from .tfne.tensors import gamma_from_cholesky_params, tensor_eigenvalue_diagnostics
+
+__all__ = [
+    "IzhikevichParams",
+    "simulate_izhikevich",
+    "HHParams",
+    "simulate_hh",
+    "TFNEGrid",
+    "make_regular_grid",
+    "gaussian_mollifier",
+    "project_sparse_currents",
+    "conservation_error",
+    "gamma_from_cholesky_params",
+    "tensor_eigenvalue_diagnostics",
+]

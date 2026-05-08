@@ -4,54 +4,46 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jbiophysic"
-version = "0.2.0"
+version = "0.2.1"
 description = "A JAX-native biophysical simulation and analysis platform designed for computational neuroscientists and biologists."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Hamed Nejat" }
+  { name = "Hamed Nejat" }
 ]
 dependencies = [
-    "jax",
-    "jaxlib",
-    "jaxley",
-    "equinox",
-    "optax",
-    "diffrax",
-    "numpy",
-    "scipy",
-    "pandas",
-    "PyYAML"
+  "jax",
+  "jaxlib",
+  "jaxley",
+  "equinox",
+  "optax",
+  "diffrax",
+  "numpy",
+  "scipy",
+  "pandas",
+  "PyYAML"
 ]
 
 [project.optional-dependencies]
 viz = [
-    "plotly",
-    "matplotlib",
-    "dash"
+  "plotly",
+  "matplotlib",
+  "dash"
 ]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "ruff",
-    "black"
-]
-
-[project.scripts]
-jbiophysic = "jbiophysic.cli.main:main"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/jbiophysic"]
-
-[tool.uv]
-dev-dependencies = [
-    "pytest",
-    "pytest-cov",
-    "ruff",
-    "black"
+  "pytest",
+  "pytest-cov",
+  "ruff",
+  "black"
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = ["--import-mode=importlib"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.black]
+line-length = 100
