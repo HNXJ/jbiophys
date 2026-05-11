@@ -1,0 +1,160 @@
+# jbiophysic static audit
+root: /Users/hamednejat/workspace/main/jbiophysic
+
+## file suffix counts
+.code-workspace: 2
+.html: 5
+.ipynb: 13
+.md: 7
+.py: 154
+.sh: 1
+.toml: 1
+.yaml: 1
+.yml: 1
+<no_suffix>: 1
+
+## python syntax errors
+none
+
+## newline collapse risks
+none
+
+## pattern hits
+hardcoded_user_path: 1
+  - audit_repo.py
+jax_import: 53
+  - VALIDATION_REPORT.md
+  - scratch/legacy_inspection/dynasim_smoke_test.py
+  - scratch/verify_fixes.py
+  - src/jbiophysic/cells/hh.py
+  - src/jbiophysic/cells/izhikevich.py
+  - src/jbiophysic/common/types/simulation.py
+  - src/jbiophysic/core/mechanisms/channels/extra_currents.py
+  - src/jbiophysic/core/mechanisms/channels/hh_base.py
+  - src/jbiophysic/core/mechanisms/synapses/kinetics.py
+  - src/jbiophysic/models/builders/rate_models.py
+  - src/jbiophysic/models/builders/reduced_models.py
+  - src/jbiophysic/models/observables/run_analysis.py
+  - src/jbiophysic/models/optimization/agsdr.py
+  - src/jbiophysic/models/optimization/gsgd.py
+  - src/jbiophysic/models/pipelines/parameter_sweep.py
+  - src/jbiophysic/models/pipelines/rate_model_pipeline.py
+  - src/jbiophysic/models/pipelines/tracer_bullet.py
+  - src/jbiophysic/models/pipelines/v1_gamma_sde_pipeline.py
+  - src/jbiophysic/models/simulation/batch.py
+  - src/jbiophysic/models/simulation/run.py
+  - src/jbiophysic/models/tfne_izhikevich.py
+  - src/jbiophysic/models/training/losses.py
+  - src/jbiophysic/models/training/stability_gatekeeper.py
+  - src/jbiophysic/networks/connectivity.py
+  - src/jbiophysic/ops/firing.py
+  - src/jbiophysic/ops/lfp.py
+  - src/jbiophysic/ops/stats.py
+  - src/jbiophysic/optim/bounds.py
+  - src/jbiophysic/optim/gsdr.py
+  - src/jbiophysic/optim/gsgd.py
+jax_numpy: 52
+  - VALIDATION_REPORT.md
+  - scratch/legacy_inspection/dynasim_smoke_test.py
+  - scratch/verify_fixes.py
+  - src/jbiophysic/cells/hh.py
+  - src/jbiophysic/cells/izhikevich.py
+  - src/jbiophysic/common/types/simulation.py
+  - src/jbiophysic/core/mechanisms/channels/extra_currents.py
+  - src/jbiophysic/core/mechanisms/channels/hh_base.py
+  - src/jbiophysic/core/mechanisms/synapses/kinetics.py
+  - src/jbiophysic/models/builders/rate_models.py
+  - src/jbiophysic/models/observables/run_analysis.py
+  - src/jbiophysic/models/optimization/agsdr.py
+  - src/jbiophysic/models/optimization/gsgd.py
+  - src/jbiophysic/models/pipelines/parameter_sweep.py
+  - src/jbiophysic/models/pipelines/rate_model_pipeline.py
+  - src/jbiophysic/models/pipelines/tracer_bullet.py
+  - src/jbiophysic/models/pipelines/v1_gamma_sde_pipeline.py
+  - src/jbiophysic/models/simulation/batch.py
+  - src/jbiophysic/models/simulation/run.py
+  - src/jbiophysic/models/tfne_izhikevich.py
+  - src/jbiophysic/models/training/losses.py
+  - src/jbiophysic/models/training/stability_gatekeeper.py
+  - src/jbiophysic/networks/connectivity.py
+  - src/jbiophysic/ops/firing.py
+  - src/jbiophysic/ops/lfp.py
+  - src/jbiophysic/ops/stats.py
+  - src/jbiophysic/optim/bounds.py
+  - src/jbiophysic/optim/gsdr.py
+  - src/jbiophysic/optim/gsgd.py
+  - src/jbiophysic/optim/sdr.py
+jax_prng: 7
+  - audit_repo.py
+  - src/jbiophysic/models/optimization/gsgd.py
+  - src/jbiophysic/networks/connectivity.py
+  - src/jbiophysic/optim/gsdr.py
+  - src/jbiophysic/simulation/edge_backend.py
+  - tests/smoke/test_legacy_pipeline.py
+  - tests/test_optim_network_pipeline.py
+optax: 0
+pjit: 2
+  - audit_repo.py
+  - tests/test_edge_backend.py
+plt_version_bug: 0
+pmap: 2
+  - audit_repo.py
+  - src/jbiophysic/models/optimization/gsgd.py
+random_global: 3
+  - src/jbiophysic/models/laminar_oddball.py
+  - src/jbiophysic/networks/cortex.py
+  - tests/test_viz_jvis.py
+scan: 4
+  - audit_repo.py
+  - src/jbiophysic/cells/hh.py
+  - src/jbiophysic/cells/izhikevich.py
+  - src/jbiophysic/simulation/edge_backend.py
+secret_like: 1
+  - audit_repo.py
+sharding: 1
+  - audit_repo.py
+vmap: 4
+  - audit_repo.py
+  - src/jbiophysic/models/optimization/gsgd.py
+  - src/jbiophysic/models/simulation/batch.py
+  - tests/core/test_properties.py
+xmap: 1
+  - audit_repo.py
+
+## notebooks
+tutorials/00_neuronal_equations_book.ipynb: cells=7 md=4 code=3 exec_counts=3 outputs=3 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/04_laminar_oddball_three_area_cortex.ipynb: cells=21 md=10 code=11 exec_counts=7 outputs=5 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/03_tfne_izhikevich_hybrid.ipynb: cells=7 md=3 code=4 exec_counts=4 outputs=3 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/01_izhikevich_hh_single_neurons.ipynb: cells=12 md=5 code=7 exec_counts=7 outputs=5 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/02_tfne_forward_fields.ipynb: cells=9 md=4 code=5 exec_counts=5 outputs=4 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/source_notebooks/tfne_izhikevich_net.original.ipynb: cells=14 md=3 code=11 exec_counts=9 outputs=7 errors=1 ast_errors=2 newline_risk_cells=[]
+  AST: cell 5: invalid syntax at 2:1
+  AST: cell 6: invalid syntax at 1:1
+tutorials/source_notebooks/neural_simulations_tutorial.original.ipynb: cells=23 md=12 code=11 exec_counts=0 outputs=0 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/source_notebooks/neural_simulations_tutorial.ipynb: cells=28 md=15 code=13 exec_counts=0 outputs=0 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/executed/00_neuronal_equations_book.ipynb: cells=7 md=4 code=3 exec_counts=3 outputs=3 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/executed/04_laminar_oddball_three_area_cortex.ipynb: cells=21 md=10 code=11 exec_counts=11 outputs=10 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/executed/03_tfne_izhikevich_hybrid.ipynb: cells=7 md=3 code=4 exec_counts=4 outputs=3 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/executed/01_izhikevich_hh_single_neurons.ipynb: cells=12 md=5 code=7 exec_counts=7 outputs=6 errors=0 ast_errors=0 newline_risk_cells=[]
+tutorials/executed/02_tfne_forward_fields.ipynb: cells=9 md=4 code=5 exec_counts=5 outputs=4 errors=0 ast_errors=0 newline_risk_cells=[]
+
+## notebook errors
+tutorials/source_notebooks/tfne_izhikevich_net.original.ipynb: 2 AST errors
+
+## notebook newline risks
+none
+
+## large files
+none
+
+## legacy candidates by path
+scratch/verify_fixes.py
+scratch/legacy_inspection/inspect_hh_v2.py
+scratch/legacy_inspection/dynasim_smoke_test.py
+scratch/legacy_inspection/inspect_hh_v3.py
+scratch/legacy_inspection/inspect_hh.py
+scratch/legacy_inspection/audit_connect.py
+scratch/legacy_inspection/README.md
+scratch/legacy_inspection/audit_connect_v2.py
+scratch/legacy_inspection/inspect_groups.py
+scratch/legacy_inspection/inspect_net.py

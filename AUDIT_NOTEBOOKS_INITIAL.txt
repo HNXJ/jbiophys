@@ -1,0 +1,95 @@
+# Notebook audit
+root: /Users/hamednejat/workspace/main/jbiophysic
+tutorials/00_neuronal_equations_book.ipynb
+  sha256: 0d1210b780c90fff71d659f91be09d9c8c7bf4b43462bb3c74b820ec7cf91283
+  size: 8897
+  cells: 7 markdown: 4 code: 3
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 3/3 (sequential)
+  outputs_present: 3/3 error_outputs: 0
+tutorials/01_izhikevich_hh_single_neurons.ipynb
+  sha256: cdbb97975b1a71e055164f575500ac72c71ed5d25e9c1b737b5e22143e97d2d8
+  size: 71724
+  cells: 12 markdown: 5 code: 7
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 7/7 (sequential)
+  outputs_present: 5/7 error_outputs: 0
+tutorials/02_tfne_forward_fields.ipynb
+  sha256: ef6ef9db955f1a7d10843ff97056fa8b59d98d52468746224088e42165986d58
+  size: 6340
+  cells: 9 markdown: 4 code: 5
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 5/5 (sequential)
+  outputs_present: 4/5 error_outputs: 0
+tutorials/03_tfne_izhikevich_hybrid.ipynb
+  sha256: d166fbab9c276b09d5d400b4766e4c574378cf4d51aa4553617621927bfd2cfa
+  size: 6015
+  cells: 7 markdown: 3 code: 4
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 4/4 (sequential)
+  outputs_present: 3/4 error_outputs: 0
+tutorials/04_laminar_oddball_three_area_cortex.ipynb
+  sha256: cf205e14afa3ea0e6911c6cb0cb924a03e7495436cafc920d470fce239ab0b78
+  size: 56134
+  cells: 21 markdown: 10 code: 11
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 7/11 (sequential)
+  outputs_present: 5/11 error_outputs: 0
+tutorials/executed/00_neuronal_equations_book.ipynb
+  sha256: 5c6db24b90fa0d3a58a21e04ea3494dc68187692b447a0e02150677b0985b511
+  size: 8228
+  cells: 7 markdown: 4 code: 3
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 3/3 (sequential)
+  outputs_present: 3/3 error_outputs: 0
+tutorials/executed/01_izhikevich_hh_single_neurons.ipynb
+  sha256: d3bef56dde657af9350d60774f68d385f613ec1096980b7187b253653fbab015
+  size: 71466
+  cells: 12 markdown: 5 code: 7
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 7/7 (sequential)
+  outputs_present: 6/7 error_outputs: 0
+tutorials/executed/02_tfne_forward_fields.ipynb
+  sha256: c7f07fce8cc5cd0b9775837c674a3e5fe2afdb94fe688a3a8863c8f974735e61
+  size: 6342
+  cells: 9 markdown: 4 code: 5
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 5/5 (sequential)
+  outputs_present: 4/5 error_outputs: 0
+tutorials/executed/03_tfne_izhikevich_hybrid.ipynb
+  sha256: bdc7b1b2728c50d70a93374356608b2e21c16478e5f7b88802f0f8bcf9c32e2c
+  size: 6017
+  cells: 7 markdown: 3 code: 4
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 4/4 (sequential)
+  outputs_present: 3/4 error_outputs: 0
+tutorials/executed/04_laminar_oddball_three_area_cortex.ipynb
+  sha256: fcc75f385f44434f8c5dd513b9a80c40da190180ed2157dbb5e5102d7553af5f
+  size: 62889
+  cells: 21 markdown: 10 code: 11
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 11/11 (sequential)
+  outputs_present: 10/11 error_outputs: 0
+tutorials/source_notebooks/neural_simulations_tutorial.ipynb
+  sha256: b9bfaa0b85a1255f27ce1a9525856dac72491220d6a897f46cc570c5bd4cf227
+  size: 9466
+  cells: 28 markdown: 15 code: 13
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 0/13 (none)
+  outputs_present: 0/13 error_outputs: 0
+tutorials/source_notebooks/neural_simulations_tutorial.original.ipynb
+  sha256: 66a57cf9976cff9722d401917ad299c9e3d36ec629e68b1a4322385db1fe7875
+  size: 43509
+  cells: 23 markdown: 12 code: 11
+  ast_errors: 0 newline_risks: []
+  exec_counts_present: 0/11 (none)
+  outputs_present: 0/11 error_outputs: 0
+tutorials/source_notebooks/tfne_izhikevich_net.original.ipynb
+  sha256: d9d28683fc746a158f15546d4c4298a1d6266bde2454a1604eec6a4f2c8b23b9
+  size: 393687
+  cells: 14 markdown: 3 code: 11
+  ast_errors: 2 newline_risks: []
+  exec_counts_present: 9/11 (nonsequential)
+  outputs_present: 7/11 error_outputs: 1
+    AST code_cell=5 line=2 col=1 msg=invalid syntax
+    AST code_cell=6 line=1 col=1 msg=invalid syntax
