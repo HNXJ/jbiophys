@@ -6,14 +6,7 @@ import numpy as np
 from scipy.io import savemat
 
 from jbiophysic.data.lap import extract_lap_layer_counts
-from jbiophysic.models.lap_izhikevich_baseline import (
-    allocate_integer_counts_from_lap,
-    build_lap_population,
-    build_sparse_baseline_weights,
-    LAPBaselineConfig,
-    run_lap_spontaneous_baseline,
-    summarize_lap_baseline,
-)
+from jbiophysic.models import lap_izhikevich_baseline as lap_baseline
 
 
 def write_synthetic_lap_mat(path: Path) -> Path:
@@ -53,7 +46,7 @@ def write_synthetic_lap_mat(path: Path) -> Path:
 def test_allocation_sums_per_area_zero_bins_and_pmd_layers(tmp_path: Path):
     mat_path = write_synthetic_lap_mat(tmp_path / "lap.mat")
     rows = extract_lap_layer_counts(mat_path)
-    allocations = allocate_integer_counts_from_lap(rows, neurons_per_area=20)
+    allocations = lap_baseline.allocate_integer_counts_from_lap(rows, neurons_per_area=20)
 
     for area in {row.area for row in rows}:
         assert sum(int(row["allocated_count"]) for row in allocations if row["area"] == area) == 20
@@ -68,7 +61,7 @@ def test_allocation_sums_per_area_zero_bins_and_pmd_layers(tmp_path: Path):
 
 def test_quick_spontaneous_baseline_smoke(tmp_path: Path):
     mat_path = write_synthetic_lap_mat(tmp_path / "lap.mat")
-    cfg = LAPBaselineConfig(
+    cfg = lap_baseline.LAPBaselineConfig(
         mat_path=mat_path,
         seed=5,
         t_ms=20.0,
@@ -78,17 +71,17 @@ def test_quick_spontaneous_baseline_smoke(tmp_path: Path):
         mean_in_degree=5,
         min_separation_m=1.0e-6,
     )
-    pop = build_lap_population(cfg)
+    pop = lap_baseline.build_lap_population(cfg)
     assert len(pop.neuron_id) == 40
     assert set(pop.area) == {"V1", "PMD"}
     assert set(pop.marker) == {"PV", "CB", "CR", "NG"}
     assert set(pop.layer) <= {"L1", "L2", "L3", "L4", "L5", "L6"}
 
-    weights = build_sparse_baseline_weights(pop, cfg)
+    weights = lap_baseline.build_sparse_baseline_weights(pop, cfg)
     assert weights.shape == (40, 40)
     assert np.all(np.diag(weights) == 0)
 
-    result = run_lap_spontaneous_baseline(pop, weights, cfg)
+    result = lap_baseline.run_lap_spontaneous_baseline(pop, weights, cfg)
     assert result["spikes"].shape == (40, 40)
     assert result["voltage_mV"].shape == (40, 40)
     assert np.all(np.isfinite(result["voltage_mV"]))
@@ -96,7 +89,7 @@ def test_quick_spontaneous_baseline_smoke(tmp_path: Path):
     assert not bool(np.asarray(result["omission_input_enabled"]).item())
     assert not bool(np.asarray(result["top_down_prediction_enabled"]).item())
 
-    summary = summarize_lap_baseline(pop, result, cfg)
+    summary = lap_baseline.summarize_lap_baseline(pop, result, cfg)
     assert summary["truth_status"] == "truth_safe_unverified"
     assert summary["baseline_mode"] == "spontaneous"
     assert summary["claim_status"]["biological_validation"] is False
