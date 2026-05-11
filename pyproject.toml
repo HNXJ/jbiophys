@@ -70,3 +70,6 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = []
+
+[tool.ruff.lint.isort]
+order-by-type = false
