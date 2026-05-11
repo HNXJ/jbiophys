@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jbiophysic"
-version = "0.3.0"
+version = "1.0.1"
 description = "Experimental JAX/Jaxley-oriented cortical biophysics, TFNE forward fields, and laminar oddball modeling."
 readme = "README.md"
 requires-python = ">=3.10"
