@@ -5,6 +5,7 @@ from typing import Any
 @dataclass(frozen=True)
 class Condition:
     """A condition describes a simulation scenario (e.g., stimulus, duration)."""
+
     name: str
     duration_ms: float
     dt_ms: float

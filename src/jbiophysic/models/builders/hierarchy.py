@@ -55,10 +55,7 @@ class SimpleNetwork:
         return list(range(self.n_cells))
 
     def cell(self, idx):
-        if isinstance(idx, list):
-            indices = idx
-        else:
-            indices = [int(idx)]
+        indices = idx if isinstance(idx, list) else [int(idx)]
         return _SimpleCellSelector(self, indices)
 
     def record(self, _what: str):

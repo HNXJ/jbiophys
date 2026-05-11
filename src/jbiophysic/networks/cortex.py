@@ -106,9 +106,9 @@ class CortexNetworkSpec:
 
     @property
     def layer_names(self) -> np.ndarray:
-        return np.asarray([f"L{i + 1}" for i in range(len(self.layer_size_fraction))], dtype=object)[
-            self.layer_index
-        ]
+        return np.asarray(
+            [f"L{i + 1}" for i in range(len(self.layer_size_fraction))], dtype=object
+        )[self.layer_index]
 
     def counts_by_layer_and_type(self) -> np.ndarray:
         """Return integer count matrix with shape ``[n_layers, 4]``."""
@@ -145,7 +145,9 @@ class CortexNetworkSpec:
         }
 
 
-def _as_float_array(name: str, value: Sequence[float], expected_len: int | None = None) -> np.ndarray:
+def _as_float_array(
+    name: str, value: Sequence[float], expected_len: int | None = None
+) -> np.ndarray:
     arr = np.asarray(value, dtype=float)
     if arr.ndim != 1:
         raise ValueError(f"{name} must be one-dimensional")
@@ -172,7 +174,9 @@ def _normalize_simplex(name: str, value: Sequence[float], *, atol: float = 1e-6)
 def _normalize_layer_density(Ld: Sequence[Sequence[float]], n_layers: int) -> np.ndarray:
     arr = np.asarray(Ld, dtype=float)
     if arr.shape != (n_layers, len(CELL_ORDER)):
-        raise ValueError(f"Ld must have shape ({n_layers}, {len(CELL_ORDER)}) in [E, PV, SST, VIP] order")
+        raise ValueError(
+            f"Ld must have shape ({n_layers}, {len(CELL_ORDER)}) in [E, PV, SST, VIP] order"
+        )
     if not np.all(np.isfinite(arr)):
         raise ValueError("Ld contains non-finite values")
     if np.any(arr < 0.0):
@@ -200,7 +204,12 @@ def _largest_remainder_counts(total: int, fractions: np.ndarray) -> np.ndarray:
 
 def _allocate_counts(N: int, Ls: np.ndarray, Ld_frac: np.ndarray) -> np.ndarray:
     layer_counts = _largest_remainder_counts(N, Ls)
-    counts = np.vstack([_largest_remainder_counts(int(n), row) for n, row in zip(layer_counts, Ld_frac, strict=True)])
+    counts = np.vstack(
+        [
+            _largest_remainder_counts(int(n), row)
+            for n, row in zip(layer_counts, Ld_frac, strict=True)
+        ]
+    )
     correction = N - int(np.sum(counts))
     if correction != 0:
         counts[-1, int(np.argmax(Ld_frac[-1]))] += correction
@@ -280,7 +289,11 @@ def _sample_non_overlapping_positions(
                         "min_distance_um, increase XYZ_mm, or raise max_attempts_per_neuron"
                     )
 
-    return np.asarray(positions, dtype=float), np.asarray(layers, dtype=int), np.asarray(ctypes, dtype=int)
+    return (
+        np.asarray(positions, dtype=float),
+        np.asarray(layers, dtype=int),
+        np.asarray(ctypes, dtype=int),
+    )
 
 
 def _default_connection_probability(source_type: str, target_type: str) -> float:

@@ -8,7 +8,9 @@ logger = get_logger(__name__)
 def main():
     logger.info("Initializing jbiophysic CLI")
     parser = argparse.ArgumentParser(description="jbiophysic - Biophysical Simulation Platform")
-    parser.add_argument("--run", action="store_true", help="Run the default scientific experiment pipeline.")
+    parser.add_argument(
+        "--run", action="store_true", help="Run the default scientific experiment pipeline."
+    )
 
     args = parser.parse_args()
 

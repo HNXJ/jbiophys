@@ -1,12 +1,14 @@
 # src/jbiophysic/common/types/visualization.py
-from jbiophysic.common.utils.logging import get_logger
 
-logger = get_logger(__name__)
+
+
 
 from dataclasses import dataclass, field
 from typing import Any
 
+from jbiophysic.common.utils.logging import get_logger
 
+logger = get_logger(__name__)
 @dataclass
 class NodeView:
     node_id: str
@@ -17,6 +19,7 @@ class NodeView:
     size: float = 1.0
     meta: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class EdgeView:
     source: str
@@ -26,12 +29,14 @@ class EdgeView:
     pathway: str = "feedforward"
     meta: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class NetworkScenePayload:
     nodes: list[NodeView]
     edges: list[EdgeView]
     frames: list[dict[str, Any]] | None = None
     layout_meta: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class RasterPayload:
@@ -40,6 +45,7 @@ class RasterPayload:
     t_start: float
     t_end: float
     meta: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class TimeSeriesPayload:

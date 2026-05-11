@@ -26,7 +26,9 @@ def test_spd_tensor_parameterization_is_positive():
 def test_gauge_and_potential_initialization_are_consistent():
     phi_e = jnp.ones((4, 4, 4)) * 50e-6
     v_m = jnp.ones((4, 4, 4)) * -70e-3
-    phi_i, phi_e_g, v_m_out = initialize_potentials(phi_e, v_m, active_mask=jnp.ones((4, 4, 4), dtype=bool))
+    phi_i, phi_e_g, v_m_out = initialize_potentials(
+        phi_e, v_m, active_mask=jnp.ones((4, 4, 4), dtype=bool)
+    )
     assert abs(float(jnp.mean(phi_e_g))) < 1e-10
     assert float(jnp.max(jnp.abs((phi_i - phi_e_g) - v_m_out))) < 1e-10
 
@@ -37,7 +39,9 @@ def test_csd_and_current_density_are_finite():
     phi = mean_zero_gauge(jnp.linspace(-1e-3, 1e-3, 125).reshape(grid.shape), grid.active_mask)
     J = current_density(phi, gamma, grid)
     op = elliptic_operator(phi, gamma, grid)
-    csd = extracellular_csd(jnp.ones(grid.shape) * 1000.0, jnp.ones(grid.shape) * 1e-6, jnp.zeros(grid.shape))
+    csd = extracellular_csd(
+        jnp.ones(grid.shape) * 1000.0, jnp.ones(grid.shape) * 1e-6, jnp.zeros(grid.shape)
+    )
     assert_no_nan_inf("J", J)
     assert_no_nan_inf("op", op)
     assert_no_nan_inf("csd", csd)

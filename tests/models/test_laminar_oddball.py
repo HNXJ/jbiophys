@@ -38,7 +38,7 @@ def test_three_area_cortex_structure_matches_requested_constraints():
 
 
 def test_tasks_share_timing_and_drive_omission_has_no_p4_input():
-    cortex = build_three_area_cortex(n_neurons=300, duration_ms=1000.0, seed=4)
+    build_three_area_cortex(n_neurons=300, duration_ms=1000.0, seed=4)
     go = global_oddball_sequences()
     om = omission_sequences()
     assert len(go["global_oddball"]) == len(om["omit_P4_A"]) == 4
@@ -61,7 +61,9 @@ def test_tasks_share_timing_and_drive_omission_has_no_p4_input():
 def test_smoke_simulation_is_finite():
     cortex = build_three_area_cortex(n_neurons=300, duration_ms=80.0, dt_ms=0.1, seed=5)
     drive = drive_schedule(cortex, "AAAA", amplitude=3.0, background=1.5)
-    result = simulate_laminar_izhikevich(cortex, drive, seed=6, noise_sd=0.1, plasticity_enabled=True)
+    result = simulate_laminar_izhikevich(
+        cortex, drive, seed=6, noise_sd=0.1, plasticity_enabled=True
+    )
     summary = summarize_simulation(result, cortex.dt_ms)
     assert summary["finite"]
     assert np.isfinite(summary["mean_rate_hz"])
@@ -126,14 +128,18 @@ def test_condition_batch_objectives_and_tfne_source_proxy_are_finite():
     cortex = build_three_area_cortex(n_neurons=300, duration_ms=100.0, dt_ms=0.1, seed=12)
     # Short smoke drives are clipped before P4, but still validate API and finite outputs.
     go_drives = build_drive_batch(cortex, global_oddball_sequences(), amplitude=3.0, background=1.0)
-    go_results = simulate_condition_batch(cortex, go_drives, seed=13, noise_sd=0.0, plasticity_enabled=False)
+    go_results = simulate_condition_batch(
+        cortex, go_drives, seed=13, noise_sd=0.0, plasticity_enabled=False
+    )
     go_obj = oddball_objectives(go_results, cortex)
     assert set(go_results) == set(global_oddball_sequences())
     assert all(np.isfinite(v) for v in go_obj.values())
 
     om_drives = build_drive_batch(cortex, omission_sequences(), amplitude=3.0, background=1.0)
     om_subset = {k: om_drives[k] for k in ["standard_A", "omit_P4_A"]}
-    om_results = simulate_condition_batch(cortex, om_subset, seed=17, noise_sd=0.0, plasticity_enabled=False)
+    om_results = simulate_condition_batch(
+        cortex, om_subset, seed=17, noise_sd=0.0, plasticity_enabled=False
+    )
     om_obj = omission_objectives(om_results, cortex)
     assert all(np.isfinite(v) for v in om_obj.values())
 

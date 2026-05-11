@@ -5,7 +5,9 @@ from __future__ import annotations
 import jax.numpy as jnp
 
 
-def supervised_delta_direction(theta_window: jnp.ndarray, loss_window: jnp.ndarray, eps: float = 1e-8) -> jnp.ndarray:
+def supervised_delta_direction(
+    theta_window: jnp.ndarray, loss_window: jnp.ndarray, eps: float = 1e-8
+) -> jnp.ndarray:
     """History-derived descent heuristic; not a guaranteed gradient."""
     if theta_window.ndim != 2 or loss_window.ndim != 1:
         raise ValueError("theta_window must be [window, params], loss_window must be [window]")

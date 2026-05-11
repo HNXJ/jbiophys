@@ -8,10 +8,11 @@ def get_experimental_schedule(phase: str) -> dict[str, Any]:
     """
     schedules = {
         "calibration": {"da": 0.5, "ach": 0.1, "stdp_on": False},
-        "training":    {"da": 0.2, "ach": 0.8, "stdp_on": True},
-        "testing":     {"da": 0.8, "ach": 0.2, "stdp_on": False}
+        "training": {"da": 0.2, "ach": 0.8, "stdp_on": True},
+        "testing": {"da": 0.8, "ach": 0.2, "stdp_on": False},
     }
     return schedules.get(phase, schedules["calibration"])
+
 
 def compute_functional_modulation(da: float, ach: float) -> dict[str, float]:
     """
@@ -22,8 +23,9 @@ def compute_functional_modulation(da: float, ach: float) -> dict[str, float]:
         "nmda_gain": 1.0 + (da * 0.5),
         "stdp_gain": ach * 1.5,
         "ff_gain": 1.0 + (ach * 0.8),
-        "fb_gain": 1.0 - (ach * 0.5)
+        "fb_gain": 1.0 - (ach * 0.5),
     }
+
 
 def apply_modulation(state: Any, phase: str) -> tuple[dict[str, float], bool]:
     """

@@ -114,6 +114,7 @@ def lichtenfeld_three_layer_priors() -> dict[str, np.ndarray]:
 @dataclass(frozen=True)
 class Event:
     """A single stimulus event within a trial."""
+
     name: str
     onset_ms: float
     duration_ms: float
@@ -124,6 +125,7 @@ class Event:
 @dataclass(frozen=True)
 class TrialSchedule:
     """A full sequence of events for a simulation trial."""
+
     task: str
     condition: str
     events: tuple[Event, ...]
@@ -385,9 +387,7 @@ def _make_edges(
     # Feedback: superficial and deep E of higher area -> deep layer of lower area.
     for lower, higher in [(0, 1), (1, 2)]:
         pre_idx = np.flatnonzero(
-            (area_index == higher)
-            & np.isin(layer_index, [0, 2])
-            & (cell_type_index == 0)
+            (area_index == higher) & np.isin(layer_index, [0, 2]) & (cell_type_index == 0)
         )
         post_idx = np.flatnonzero((area_index == lower) & (layer_index == 2))
         for pre in pre_idx:
@@ -411,9 +411,7 @@ def _make_edges(
 
     # Apical inhibition: half of deep E cells receive SST inhibition.
     for area in range(3):
-        deep_e = np.flatnonzero(
-            (area_index == area) & (layer_index == 2) & (cell_type_index == 0)
-        )
+        deep_e = np.flatnonzero((area_index == area) & (layer_index == 2) & (cell_type_index == 0))
         if deep_e.size == 0:
             continue
         selected = rng.choice(deep_e, size=max(1, deep_e.size // 2), replace=False)
@@ -522,7 +520,7 @@ def build_three_area_cortex(
         tmp[int(a), int(layer), int(ctype)] += 1
     if np.any(tmp == 0):
         raise RuntimeError(
-            "integer allocation produced a zero area/layer/type bin; increase n_neurons or adjust priors"
+            "zero area/layer/type bin in allocation; increase n_neurons or adjust priors"
         )
 
     edges = _make_edges(
@@ -632,8 +630,9 @@ def drive_schedule(
     return drive
 
 
-
-def density_priors_table(density_priors: Mapping[str, np.ndarray] | None = None) -> list[dict[str, float | str]]:
+def density_priors_table(
+    density_priors: Mapping[str, np.ndarray] | None = None,
+) -> list[dict[str, float | str]]:
     """Return density priors as a tidy table-friendly list of dictionaries.
 
     The values are percentages in the tutorial's three-layer abstraction.  They are
@@ -681,7 +680,9 @@ def validate_replication_constraints(cortex: ThreeAreaCortexSpec) -> dict[str, b
     receptor_names = np.asarray(edge["receptor_names"], dtype=object)
     source_types = cortex.cell_type_names[src]
     interarea = cortex.area_index[src] != cortex.area_index[tgt]
-    interarea_receptors = set(receptor_names[receptor[interarea]].tolist()) if np.any(interarea) else set()
+    interarea_receptors = (
+        set(receptor_names[receptor[interarea]].tolist()) if np.any(interarea) else set()
+    )
     deep_e = np.flatnonzero((cortex.layer_index == 2) & (cortex.cell_type_index == 0))
     apical_targets = np.unique(tgt[klass == "apical_sst_to_half_deep_e"])
 
@@ -694,7 +695,9 @@ def validate_replication_constraints(cortex: ThreeAreaCortexSpec) -> dict[str, b
         "equal_area_counts": bool(np.all(counts.sum(axis=(1, 2)) == counts.sum(axis=(1, 2))[0])),
         "layer_counts_match_45_20_35_per_area": bool(
             np.all(counts.sum(axis=2) == np.asarray([45, 20, 35]))
-        ) if cortex.n_neurons == 300 else bool(np.all(counts.sum(axis=2) > 0)),
+        )
+        if cortex.n_neurons == 300
+        else bool(np.all(counts.sum(axis=2) > 0)),
         "e_sources_are_excitatory_receptors": bool(
             np.all(np.isin(receptor_names[receptor[source_types == "E"]], ["AMPA", "NMDA"]))
         ),
@@ -705,7 +708,9 @@ def validate_replication_constraints(cortex: ThreeAreaCortexSpec) -> dict[str, b
         "has_feedforward_path": bool(np.any(klass == "feedforward_superficial_to_middle")),
         "has_feedback_path": bool(np.any(klass == "feedback_superficial_deep_to_deep")),
         "has_apical_sst_to_deep_e": bool(np.any(klass == "apical_sst_to_half_deep_e")),
-        "apical_targets_fraction_of_deep_e": float(len(np.intersect1d(apical_targets, deep_e)) / max(1, deep_e.size)),
+        "apical_targets_fraction_of_deep_e": float(
+            len(np.intersect1d(apical_targets, deep_e)) / max(1, deep_e.size)
+        ),
         "duration_ms": float(cortex.duration_ms),
         "dt_ms": float(cortex.dt_ms),
     }
@@ -878,7 +883,9 @@ def firing_rate_by_group(
     return out
 
 
-def sequence_p4_minus_p3_contrast(result: Mapping[str, np.ndarray], cortex: ThreeAreaCortexSpec) -> float:
+def sequence_p4_minus_p3_contrast(
+    result: Mapping[str, np.ndarray], cortex: ThreeAreaCortexSpec
+) -> float:
     """Return population firing contrast P4 - P3 in Hz."""
 
     rates_p3 = firing_rate_by_group(result, cortex, group_by="area", window=_slot_slice(cortex, 2))
@@ -898,13 +905,16 @@ def oddball_objectives(
 
     out: dict[str, float] = {}
     if "habituated_local_oddball" in results and "control_A" in results:
-        out["local_oddball_p4_minus_p3_excess_hz"] = (
-            sequence_p4_minus_p3_contrast(results["habituated_local_oddball"], cortex)
-            - sequence_p4_minus_p3_contrast(results["control_A"], cortex)
-        )
+        out["local_oddball_p4_minus_p3_excess_hz"] = sequence_p4_minus_p3_contrast(
+            results["habituated_local_oddball"], cortex
+        ) - sequence_p4_minus_p3_contrast(results["control_A"], cortex)
     if "global_oddball" in results and "control_A" in results:
-        global_p4 = firing_rate_by_group(results["global_oddball"], cortex, window=_slot_slice(cortex, 3))
-        control_p4 = firing_rate_by_group(results["control_A"], cortex, window=_slot_slice(cortex, 3))
+        global_p4 = firing_rate_by_group(
+            results["global_oddball"], cortex, window=_slot_slice(cortex, 3)
+        )
+        control_p4 = firing_rate_by_group(
+            results["control_A"], cortex, window=_slot_slice(cortex, 3)
+        )
         out["global_high_minus_low_p4_excess_hz"] = float(
             (global_p4.get("high", 0.0) - control_p4.get("high", 0.0))
             - (global_p4.get("low", 0.0) - control_p4.get("low", 0.0))
@@ -928,7 +938,9 @@ def omission_objectives(
     omission = firing_rate_by_group(results[omission_name], cortex, group_by="area", window=p4)
     area_delta = {area: omission[area] - standard[area] for area in standard}
     return {
-        "omission_high_minus_low_delta_hz": float(area_delta.get("high", 0.0) - area_delta.get("low", 0.0)),
+        "omission_high_minus_low_delta_hz": float(
+            area_delta.get("high", 0.0) - area_delta.get("low", 0.0)
+        ),
         "omission_mean_delta_hz": float(np.mean(list(area_delta.values()))),
     }
 
@@ -1070,9 +1082,9 @@ def simulate_laminar_izhikevich(
     for t in range(steps):
         I_syn = np.zeros(n, dtype=np.float32)
         np.add.at(I_syn, target, sign * weights * syn_state)
-        I = drive[t] + I_syn + noise_sd * rng.standard_normal(n).astype(np.float32)
+        I_input = drive[t] + I_syn + noise_sd * rng.standard_normal(n).astype(np.float32)
 
-        dv = 0.04 * v * v + 5.0 * v + 140.0 - u + I
+        dv = 0.04 * v * v + 5.0 * v + 140.0 - u + I_input
         du = a * (b * v - u)
         v_pre = v + cortex.dt_ms * dv
         u_pre = u + cortex.dt_ms * du

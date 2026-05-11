@@ -1,35 +1,39 @@
 # src/jbiophysic/viz/plotly/tracer_plots.py
-from jbiophysic.common.utils.logging import get_logger
 
-logger = get_logger(__name__)
+
+
 
 import numpy as np
 import plotly.graph_objects as go
 
+from jbiophysic.common.utils.logging import get_logger
 
+logger = get_logger(__name__)
 def plot_tracer_voltage(times: np.ndarray, voltages: np.ndarray):
     """Generates a Plotly figure for the tracer bullet voltage trace."""
     logger.info("Generating Tracer Bullet Plotly figure")
-    
+
     fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=times, 
-        y=voltages, 
-        mode='lines', 
-        name='Membrane Potential',
-        line=dict(color='#CFB87C', width=2)
-    ))
-    
+
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=voltages,
+            mode="lines",
+            name="Membrane Potential",
+            line=dict(color="#CFB87C", width=2),
+        )
+    )
+
     fig.update_layout(
         title="Tracer Bullet: Leaky Integrate-and-Fire Dynamics",
         xaxis_title="Time (ms)",
         yaxis_title="Voltage (mV)",
         template="plotly_dark",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#CFB87C')
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#CFB87C"),
     )
-    
+
     logger.info("Tracer plot generation complete.")
     return fig

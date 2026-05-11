@@ -1,4 +1,5 @@
 """Optional visualization adapters."""
+
 from jbiophysic.viz.serializers.activity import serialize_raster
 
 from .jvis import JVis, jvis, lfp, psd, raster, spectrogram, summary, traces

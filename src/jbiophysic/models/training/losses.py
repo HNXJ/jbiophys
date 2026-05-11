@@ -1,22 +1,26 @@
 # src/jbiophysic/models/training/losses.py
-from jbiophysic.common.utils.logging import get_logger
 
-logger = get_logger(__name__)
+
+
 
 import jax.numpy as jnp
 
+from jbiophysic.common.utils.logging import get_logger
 
+logger = get_logger(__name__)
 def compute_rate_loss(rates, target=5.0):
     diff = rates - target
     res = jnp.mean(diff**2)
     return res
 
+
 def compute_empirical_spectral_loss(empirical_psd, model_psd, band_mask):
     """Axis 19: Fitting directly against recorded electrophysiology."""
     target_band = empirical_psd[band_mask]
     model_band = model_psd[band_mask]
-    res = jnp.mean((model_band - target_band)**2)
+    res = jnp.mean((model_band - target_band) ** 2)
     return res
+
 
 def compute_spectral_loss(psd, freqs, target_band_name="gamma"):
     """Evaluate specific target band limits."""
@@ -26,17 +30,19 @@ def compute_spectral_loss(psd, freqs, target_band_name="gamma"):
         mask = (freqs >= 13) & (freqs <= 30)
     else:
         mask = jnp.ones_like(freqs, dtype=bool)
-    
+
     band_power = jnp.mean(psd[mask])
     target_power = 0.5
-    res = (band_power - target_power)**2
+    res = (band_power - target_power) ** 2
     return res
+
 
 def compute_ei_loss(exc_currents, inh_currents):
     abs_exc = jnp.abs(exc_currents)
     abs_inh = jnp.abs(inh_currents)
-    res = jnp.mean((abs_exc - abs_inh)**2)
+    res = jnp.mean((abs_exc - abs_inh) ** 2)
     return res
+
 
 def compute_stability_loss(rates):
     """L5: Rate stability/variance penalty."""

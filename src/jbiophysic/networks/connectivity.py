@@ -6,7 +6,9 @@ import jax
 import jax.numpy as jnp
 
 
-def erdos_renyi_mask(key: jax.Array, n_pre: int, n_post: int, p: float, *, allow_self: bool = False) -> jnp.ndarray:
+def erdos_renyi_mask(
+    key: jax.Array, n_pre: int, n_post: int, p: float, *, allow_self: bool = False
+) -> jnp.ndarray:
     """Return a boolean random connectivity mask."""
     if not 0.0 <= p <= 1.0:
         raise ValueError("p must be in [0, 1]")

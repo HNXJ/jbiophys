@@ -13,8 +13,12 @@ class AGSDRSchedule:
     alpha_down: float = 0.01
 
 
-def adapt_alpha(alpha: float, *, plateau: bool, improving: bool, schedule: AGSDRSchedule = AGSDRSchedule()) -> float:
+def adapt_alpha(
+    alpha: float, *, plateau: bool, improving: bool, schedule: AGSDRSchedule | None = None
+) -> float:
     """Update alpha based on plateau/improvement flags."""
+    if schedule is None:
+        schedule = AGSDRSchedule()
     if plateau:
         alpha += schedule.alpha_up
     if improving:

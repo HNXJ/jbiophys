@@ -6,7 +6,9 @@ import numpy as np
 from scipy.signal import welch
 
 
-def power_spectrum(x: np.ndarray, fs_hz: float, nperseg: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def power_spectrum(
+    x: np.ndarray, fs_hz: float, nperseg: int | None = None
+) -> tuple[np.ndarray, np.ndarray]:
     """Return Welch frequency and power arrays."""
     if fs_hz <= 0:
         raise ValueError("fs_hz must be positive")
@@ -29,6 +31,12 @@ def band_power(freq_hz: np.ndarray, power: np.ndarray, band: tuple[float, float]
     return float(np.trapezoid(power[mask], freq_hz[mask]))
 
 
-def beta_gamma_ratio(freq_hz: np.ndarray, power: np.ndarray, beta: tuple[float, float] = (13.0, 30.0), gamma: tuple[float, float] = (40.0, 100.0), eps: float = 1e-12) -> float:
+def beta_gamma_ratio(
+    freq_hz: np.ndarray,
+    power: np.ndarray,
+    beta: tuple[float, float] = (13.0, 30.0),
+    gamma: tuple[float, float] = (40.0, 100.0),
+    eps: float = 1e-12,
+) -> float:
     """Return beta/gamma power ratio."""
     return band_power(freq_hz, power, beta) / (band_power(freq_hz, power, gamma) + eps)

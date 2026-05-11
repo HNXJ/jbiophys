@@ -4,6 +4,7 @@ import jax.numpy as jnp
 try:  # Jaxley is preferred when installed, but lightweight tests should not require it.
     from jaxley.channels import HH as _JaxleyHH
 except ModuleNotFoundError:  # pragma: no cover - exercised when jaxley is absent
+
     class _JaxleyHH:
         def __init__(self, name: str = "HH"):
             self._name = name
@@ -63,7 +64,12 @@ class HH(_JaxleyHH):
 
     def compute_current(self, states, v, params):
         name = self._name
-        ina = params[f"{name}_gNa"] * (states[f"{name}_m"] ** 3) * states[f"{name}_h"] * (v - params[f"{name}_eNa"])
+        ina = (
+            params[f"{name}_gNa"]
+            * (states[f"{name}_m"] ** 3)
+            * states[f"{name}_h"]
+            * (v - params[f"{name}_eNa"])
+        )
         ik = params[f"{name}_gK"] * (states[f"{name}_n"] ** 4) * (v - params[f"{name}_eK"])
         il = params[f"{name}_gLeak"] * (v - params[f"{name}_eLeak"])
         return ina + ik + il

@@ -76,7 +76,7 @@ def simulate_izhikevich_edge_jax(
     # AMPA: 2ms, GABA: 10ms, NMDA: 100ms
     tau = jnp.array([2.0, 10.0, 100.0])
     decay = jnp.exp(-dt_ms / tau[edges.receptor_index])
-    sign = jnp.where(edges.receptor_index == 1, -1.0, 1.0) # Assume 1 is GABA
+    sign = jnp.where(edges.receptor_index == 1, -1.0, 1.0)  # Assume 1 is GABA
 
     def body(carry, drive_t_key):
         state, (drive_t, step_key) = carry, drive_t_key
@@ -93,7 +93,7 @@ def simulate_izhikevich_edge_jax(
         du = a * (b * v - u)
         v_next_pre = v + dt_ms * dv
         u_next_pre = u + dt_ms * du
-        
+
         spiked = v_next_pre >= 30.0
         v_next = jnp.where(spiked, c, v_next_pre)
         u_next = jnp.where(spiked, u_next_pre + d, u_next_pre)
@@ -113,9 +113,5 @@ def simulate_izhikevich_edge_jax(
         return next_state, (v_next, spiked)
 
     keys = jax.random.split(key, steps)
-    final_state, (V, spikes) = jax.lax.scan(
-        body, 
-        state0,
-        (drives, keys)
-    )
+    final_state, (V, spikes) = jax.lax.scan(body, state0, (drives, keys))
     return final_state, (V, spikes)

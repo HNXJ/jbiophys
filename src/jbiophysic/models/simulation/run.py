@@ -22,7 +22,11 @@ def _fallback_trace(brain: Any, config: SimulationConfig) -> jnp.ndarray:
     t = jnp.arange(n_steps) * config.dt
     # Deterministic finite smoke trace: near-rest membrane potential with tiny node-specific ripple.
     offsets = jnp.arange(max(n_nodes, 1)).reshape(-1, 1) * 0.01
-    return -65.0 + offsets + 0.01 * jnp.sin(2.0 * jnp.pi * t.reshape(1, -1) / max(config.t_max, config.dt))
+    return (
+        -65.0
+        + offsets
+        + 0.01 * jnp.sin(2.0 * jnp.pi * t.reshape(1, -1) / max(config.t_max, config.dt))
+    )
 
 
 def run_simulation(

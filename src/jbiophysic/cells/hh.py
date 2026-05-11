@@ -58,7 +58,9 @@ def steady_state_gates(V_mV: Array) -> tuple[Array, Array, Array]:
     return am / (am + bm), ah / (ah + bh), an / (an + bn)
 
 
-def hh_currents(V_mV: Array, m: Array, h: Array, n: Array, params: HHParams) -> tuple[Array, Array, Array]:
+def hh_currents(
+    V_mV: Array, m: Array, h: Array, n: Array, params: HHParams
+) -> tuple[Array, Array, Array]:
     """Return `(I_Na, I_K, I_L)` in uA/cm^2 using outward-positive convention."""
     I_Na = params.g_Na_mS_cm2 * (m**3) * h * (V_mV - params.E_Na_mV)
     I_K = params.g_K_mS_cm2 * (n**4) * (V_mV - params.E_K_mV)
@@ -116,4 +118,6 @@ def simulate_hh(
         m_hist.append(m)
         h_hist.append(h)
         n_hist.append(n)
-    return jnp.stack(v_hist), jnp.stack([jnp.stack(m_hist), jnp.stack(h_hist), jnp.stack(n_hist)], axis=0)
+    return jnp.stack(v_hist), jnp.stack(
+        [jnp.stack(m_hist), jnp.stack(h_hist), jnp.stack(n_hist)], axis=0
+    )

@@ -6,7 +6,9 @@ import jax
 import jax.numpy as jnp
 
 
-def gsgd_step(loss_fn, theta: jnp.ndarray, lr: float, *args, **kwargs) -> tuple[jnp.ndarray, jnp.ndarray]:
+def gsgd_step(
+    loss_fn, theta: jnp.ndarray, lr: float, *args, **kwargs
+) -> tuple[jnp.ndarray, jnp.ndarray]:
     """One gradient step returning `(theta_next, loss)` for simple smoke tests."""
     if lr <= 0:
         raise ValueError("lr must be positive")

@@ -5,9 +5,11 @@ from jbiophysic.viz import jvis
 
 try:
     import matplotlib.pyplot as plt
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
+
 
 @pytest.mark.skipif(not MATPLOTLIB_AVAILABLE, reason="matplotlib not available")
 def test_jvis_raster_real():
@@ -19,6 +21,7 @@ def test_jvis_raster_real():
     assert len(ax.collections) > 0
     plt.close(fig)
 
+
 @pytest.mark.skipif(not MATPLOTLIB_AVAILABLE, reason="matplotlib not available")
 def test_jvis_traces_real():
     v = np.random.randn(100, 5)
@@ -27,13 +30,10 @@ def test_jvis_traces_real():
     assert len(ax.lines) == 5
     plt.close(fig)
 
+
 @pytest.mark.skipif(not MATPLOTLIB_AVAILABLE, reason="matplotlib not available")
 def test_jvis_summary_real():
-    data = {
-        "spikes": np.zeros((100, 2)),
-        "v": np.random.randn(100, 2),
-        "lfp": np.random.randn(100)
-    }
+    data = {"spikes": np.zeros((100, 2)), "v": np.random.randn(100, 2), "lfp": np.random.randn(100)}
     fig, axes = jvis.summary(data)
     assert fig is not None
     assert axes.shape == (2, 2)

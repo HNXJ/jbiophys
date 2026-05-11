@@ -1,4 +1,3 @@
-
 def test_simplified_imports():
     from jbiophysic import ops
     from jbiophysic.conditions import Condition
@@ -7,7 +6,7 @@ def test_simplified_imports():
     from jbiophysic.neurons import IzhikevichParams
     from jbiophysic.objectives import Objective
     from jbiophysic.viz import jvis
-    
+
     assert IzhikevichParams is not None
     assert Condition is not None
     assert Objective is not None
