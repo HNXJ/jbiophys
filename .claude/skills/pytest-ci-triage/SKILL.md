@@ -15,7 +15,7 @@ Reproduce and classify local and GitHub Actions CI failures. Separate environmen
 ## Inputs to inspect first
 
 - `.github/workflows/ci.yml` (Python matrix, install steps, lint/compile/test sequence)
-- `CLAUDE.md` Section D (standard validation commands)
+- `.claude/CLAUDE.md` Section D (standard validation commands)
 - `.venv/bin/activate` (local Python environment)
 - Recent GitHub Actions logs: `gh run view <run-id> --log`
 

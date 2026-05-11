@@ -73,7 +73,8 @@ def build_network(seed: int):
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Plot a two-column lower/higher cortex laminar anatomy scaffold as interactive HTML."
+        description="Plot a two-column lower/higher cortex laminar anatomy scaffold as "
+        "interactive HTML."
     )
     parser.add_argument(
         "--out",
