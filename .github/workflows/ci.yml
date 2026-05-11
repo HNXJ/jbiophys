@@ -22,7 +22,13 @@ jobs:
       - name: Parse pyproject
         run: |
           python - <<'PY'
-          import tomllib
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import subprocess
+              import sys
+              subprocess.check_call([sys.executable, "-m", "pip", "install", "tomli"])
+              import tomli as tomllib
           with open('pyproject.toml','rb') as f:
               print(tomllib.load(f)['project']['name'])
           PY
