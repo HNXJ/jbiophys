@@ -18,29 +18,30 @@ metadata. It is not biological proof of a spectrolaminar mechanism.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, replace
-from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, Mapping
 import hashlib
 import json
 import math
 import pickle
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field, replace
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import yaml
 
-from jbiophysic.cells.izhikevich import REGULAR_SPIKING, FAST_SPIKING, LOW_THRESHOLD_SPIKING
+from jbiophysic.cells.izhikevich import FAST_SPIKING, LOW_THRESHOLD_SPIKING, REGULAR_SPIKING
 from jbiophysic.models.tfne_izhikevich import IzhikevichTFNEScale, izh_current_to_ampere
 from jbiophysic.tfne import (
-    make_regular_grid,
+    conservation_error,
+    current_density,
+    divergence_neumann_zero,
     gaussian_mollifier,
     isotropic_gamma,
     jacobi_poisson_neumann_smoke,
-    current_density,
-    divergence_neumann_zero,
-    conservation_error,
+    make_regular_grid,
 )
 from jbiophysic.tfne.validation import assert_no_nan_inf, assert_passive_spd
 
@@ -88,12 +89,23 @@ class JTFNEInitConfig:
     cz_m: float = 1.0e-3
     radius_rel: float = 0.10
     l4_ref_rel: float = 0.50
-    layer_fractions: dict[str, float] = field(default_factory=lambda: {
-        "L1": 0.150, "L2": 0.200, "L3": 0.200, "L4": 0.125, "L5": 0.200, "L6": 0.125,
-    })
+    layer_fractions: dict[str, float] = field(
+        default_factory=lambda: {
+            "L1": 0.150,
+            "L2": 0.200,
+            "L3": 0.200,
+            "L4": 0.125,
+            "L5": 0.200,
+            "L6": 0.125,
+        }
+    )
     layer_bounds_rel: tuple[tuple[str, float, float], ...] = (
-        ("L1", 0.00, 0.10), ("L2", 0.10, 0.25), ("L3", 0.25, 0.45),
-        ("L4", 0.45, 0.55), ("L5", 0.55, 0.85), ("L6", 0.85, 1.00),
+        ("L1", 0.00, 0.10),
+        ("L2", 0.10, 0.25),
+        ("L3", 0.25, 0.45),
+        ("L4", 0.45, 0.55),
+        ("L5", 0.55, 0.85),
+        ("L6", 0.85, 1.00),
     )
     layer_cell_fractions: dict[str, dict[str, float]] = field(default_factory=_deep_e_fractions)
     truth_mode: str = "truth_safe_unverified"
@@ -110,10 +122,17 @@ class JTFNESimConfig:
     init_v_sd_mV: float = 4.0
     eta_tau_ms: float = 8.0
     spike_filter_tau_ms: float = 14.0
-    drive: dict[str, tuple[float, float]] = field(default_factory=lambda: {
-        "E": (7.6, 9.3), "PV": (5.8, 7.5), "SST": (5.6, 7.1), "VIP": (5.7, 7.3),
-    })
-    noise: dict[str, float] = field(default_factory=lambda: {"E": 0.85, "PV": 0.75, "SST": 0.70, "VIP": 0.72})
+    drive: dict[str, tuple[float, float]] = field(
+        default_factory=lambda: {
+            "E": (7.6, 9.3),
+            "PV": (5.8, 7.5),
+            "SST": (5.6, 7.1),
+            "VIP": (5.7, 7.3),
+        }
+    )
+    noise: dict[str, float] = field(
+        default_factory=lambda: {"E": 0.85, "PV": 0.75, "SST": 0.70, "VIP": 0.72}
+    )
     # TFNE readout.
     tfne_grid_nxy: int = 5
     tfne_grid_nz: int = 21
@@ -173,7 +192,7 @@ class JTFNEConfig:
     vis: JTFNEVisConfig = field(default_factory=JTFNEVisConfig)
     opt: JTFNEOptConfig = field(default_factory=JTFNEOptConfig)
 
-    def with_smoke_defaults(self) -> "JTFNEConfig":
+    def with_smoke_defaults(self) -> JTFNEConfig:
         sim = replace(
             self.sim,
             t_ms=250.0,
@@ -232,7 +251,14 @@ def _dataclass_from_dict(cls, data: Mapping[str, Any]):
         d = dict(data)
         if "sim" in d and isinstance(d["sim"], dict):
             d["sim"] = _dataclass_from_dict(JTFNESimConfig, d["sim"])
-        for k in ("target_ab", "target_gm", "sweep_noise_scale", "sweep_local_exc_gain", "sweep_local_inh_gain", "sweep_feedback_gain"):
+        for k in (
+            "target_ab",
+            "target_gm",
+            "sweep_noise_scale",
+            "sweep_local_exc_gain",
+            "sweep_local_inh_gain",
+            "sweep_feedback_gain",
+        ):
             if k in d and isinstance(d[k], list):
                 d[k] = tuple(d[k])
         return JTFNEOptConfig(**d)
@@ -316,7 +342,9 @@ def _params_for_cell(cell_type: str):
     return LOW_THRESHOLD_SPIKING
 
 
-def _integer_counts(total: int, fractions: Mapping[str, float], keys: tuple[str, ...] | list[str]) -> dict[str, int]:
+def _integer_counts(
+    total: int, fractions: Mapping[str, float], keys: tuple[str, ...] | list[str]
+) -> dict[str, int]:
     raw = {k: float(total) * float(fractions[k]) for k in keys}
     out = {k: int(np.floor(raw[k])) for k in keys}
     rem = total - sum(out.values())
@@ -338,7 +366,10 @@ def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
     cfg.validate()
     rng = np.random.default_rng(init.seed)
     radius_m = init.radius_rel * min(init.cx_m, init.cy_m)
-    area_centers = {a: np.array([(i - (len(init.area_order) - 1) / 2.0) * init.cx_m, 0.0]) for i, a in enumerate(init.area_order)}
+    area_centers = {
+        a: np.array([(i - (len(init.area_order) - 1) / 2.0) * init.cx_m, 0.0])
+        for i, a in enumerate(init.area_order)
+    }
     layers = [(name, z0 * init.cz_m, z1 * init.cz_m) for name, z0, z1 in init.layer_bounds_rel]
     layer_order = tuple(x[0] for x in init.layer_bounds_rel)
     layer_counts = _integer_counts(init.n_neuron_per_column, init.layer_fractions, layer_order)
@@ -348,23 +379,38 @@ def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
     for area in init.area_order:
         center = area_centers[area]
         for layer, z0, z1 in layers:
-            type_counts = _integer_counts(layer_counts[layer], init.layer_cell_fractions[layer], init.cell_types)
+            type_counts = _integer_counts(
+                layer_counts[layer], init.layer_cell_fractions[layer], init.cell_types
+            )
             for cell_type, n_cell in type_counts.items():
                 params = _params_for_cell(cell_type)
                 for _ in range(n_cell):
                     r = radius_m * np.sqrt(rng.random())
                     theta = rng.uniform(0.0, 2.0 * np.pi)
-                    xyz = np.array([center[0] + r * np.cos(theta), center[1] + r * np.sin(theta), rng.uniform(z0, z1)])
-                    rows.append({
-                        "neuron_id": neuron_id,
-                        "area": area,
-                        "layer": layer,
-                        "cell_type": cell_type,
-                        "x_m": float(xyz[0]), "y_m": float(xyz[1]), "z_m": float(xyz[2]),
-                        "pos_from_l4": float(_depth_to_l4_position(xyz[2], init)),
-                        "a": params.a, "b": params.b, "c": params.c, "d": params.d,
-                        "v_spike_mV": params.v_spike_mV,
-                    })
+                    xyz = np.array(
+                        [
+                            center[0] + r * np.cos(theta),
+                            center[1] + r * np.sin(theta),
+                            rng.uniform(z0, z1),
+                        ]
+                    )
+                    rows.append(
+                        {
+                            "neuron_id": neuron_id,
+                            "area": area,
+                            "layer": layer,
+                            "cell_type": cell_type,
+                            "x_m": float(xyz[0]),
+                            "y_m": float(xyz[1]),
+                            "z_m": float(xyz[2]),
+                            "pos_from_l4": float(_depth_to_l4_position(xyz[2], init)),
+                            "a": params.a,
+                            "b": params.b,
+                            "c": params.c,
+                            "d": params.d,
+                            "v_spike_mV": params.v_spike_mV,
+                        }
+                    )
                     positions.append(xyz)
                     neuron_id += 1
     neurons = pd.DataFrame(rows)
@@ -378,11 +424,16 @@ def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
         tfne_basis=None,
         truth_mode=init.truth_mode,
         claim_level=init.claim_level,
-        method_alignment="E->S->Q->F->P reduced TFNE baseline; chemistry and optimizer feedback are optional/future operators",
+        method_alignment=(
+            "E->S->Q->F->P reduced TFNE baseline; "
+            "chemistry and optimizer feedback are optional/future operators"
+        ),
     )
 
 
-def _build_connectivity(neurons: pd.DataFrame, positions_m: Array, init: JTFNEInitConfig, sim: JTFNESimConfig) -> dict[str, Array]:
+def _build_connectivity(
+    neurons: pd.DataFrame, positions_m: Array, init: JTFNEInitConfig, sim: JTFNESimConfig
+) -> dict[str, Array]:
     rng = np.random.default_rng(init.seed + 1000)
     n = len(neurons)
     W_local_exc = np.zeros((n, n), np.float32)
@@ -408,11 +459,26 @@ def _build_connectivity(neurons: pd.DataFrame, positions_m: Array, init: JTFNEIn
                     W_local_inh[post, pre] = -rng.uniform(0.055, 0.145) * (0.65 + 0.35 * local_gain)
             elif cell[pre] == "E":
                 delta = area_rank[area[post]] - area_rank[area[pre]]
-                if delta == 1 and layer[pre] in ("L2", "L3") and layer[post] == "L4" and rng.random() < sim.p_feedforward:
+                if (
+                    delta == 1
+                    and layer[pre] in ("L2", "L3")
+                    and layer[post] == "L4"
+                    and rng.random() < sim.p_feedforward
+                ):
                     W_ff[post, pre] = rng.uniform(0.007, 0.030)
-                if delta == -1 and layer[pre] in ("L2", "L3", "L6") and layer[post] in ("L5", "L6") and rng.random() < sim.p_feedback:
+                if (
+                    delta == -1
+                    and layer[pre] in ("L2", "L3", "L6")
+                    and layer[post] in ("L5", "L6")
+                    and rng.random() < sim.p_feedback
+                ):
                     W_fb[post, pre] = rng.uniform(0.006, 0.026)
-    return {"local_exc": W_local_exc, "local_inh": W_local_inh, "feedforward": W_ff, "feedback": W_fb}
+    return {
+        "local_exc": W_local_exc,
+        "local_inh": W_local_inh,
+        "feedforward": W_ff,
+        "feedback": W_fb,
+    }
 
 
 def _scaled_weight(model: SimpleNamespace, sim: JTFNESimConfig) -> Array:
@@ -485,7 +551,9 @@ def _simulate_emitters(model: SimpleNamespace, sim: JTFNESimConfig, seed: int) -
         v[sp] = c[sp]
         u[sp] += d[sp]
         prev = sp
-    source_native = _filtered_spike_source(model, spikes, sim, seed) + _spectrolaminar_ratio_source(model, steps, sim, seed)
+    source_native = _filtered_spike_source(model, spikes, sim, seed) + _spectrolaminar_ratio_source(
+        model, steps, sim, seed
+    )
     return {
         "time_ms": np.arange(steps, dtype=np.float32) * np.float32(dt),
         "dt_ms": dt,
@@ -495,19 +563,25 @@ def _simulate_emitters(model: SimpleNamespace, sim: JTFNESimConfig, seed: int) -
     }
 
 
-def _filtered_spike_source(model: SimpleNamespace, spikes: Array, sim: JTFNESimConfig, seed: int) -> Array:
+def _filtered_spike_source(
+    model: SimpleNamespace, spikes: Array, sim: JTFNESimConfig, seed: int
+) -> Array:
     del seed
     alpha = math.exp(-sim.dt_ms / sim.spike_filter_tau_ms)
     state = np.zeros(spikes.shape[1], np.float32)
     filt = np.zeros_like(spikes, dtype=np.float32)
-    signs = np.asarray([1.0 if ct == "E" else -1.0 for ct in model.neurons.cell_type], dtype=np.float32)
+    signs = np.asarray(
+        [1.0 if ct == "E" else -1.0 for ct in model.neurons.cell_type], dtype=np.float32
+    )
     for ti in range(spikes.shape[0]):
         state = alpha * state + spikes[ti].astype(np.float32)
         filt[ti] = state * signs
     return sim.spike_background_mix * filt
 
 
-def _spectrolaminar_ratio_source(model: SimpleNamespace, steps: int, sim: JTFNESimConfig, seed: int) -> Array:
+def _spectrolaminar_ratio_source(
+    model: SimpleNamespace, steps: int, sim: JTFNESimConfig, seed: int
+) -> Array:
     """Source-coherence scaffold whose amplitudes are driven by laminar E/I ratios.
 
     This intentionally tests the hypothesis that deep-high E/I is necessary for the
@@ -531,15 +605,27 @@ def _spectrolaminar_ratio_source(model: SimpleNamespace, steps: int, sim: JTFNES
     # Normalize ratio terms to [0, 1]. Correct mode has high E in deep and high I in superficial.
     e_norm = (e_frac - e_frac.min()) / (e_frac.max() - e_frac.min() + 1e-12)
     i_norm = (i_frac - i_frac.min()) / (i_frac.max() - i_frac.min() + 1e-12)
-    ab_layer_gain = sim.resonance_strength * (0.15 + 0.85 * e_norm) * deep_profile * sim.feedback_gain
-    gm_layer_gain = sim.resonance_strength * (0.15 + 0.85 * i_norm) * superficial_profile * sim.local_exc_gain * sim.local_inh_gain
+    ab_layer_gain = (
+        sim.resonance_strength * (0.15 + 0.85 * e_norm) * deep_profile * sim.feedback_gain
+    )
+    gm_layer_gain = (
+        sim.resonance_strength
+        * (0.15 + 0.85 * i_norm)
+        * superficial_profile
+        * sim.local_exc_gain
+        * sim.local_inh_gain
+    )
     neurons = model.neurons
     for area in init.area_order:
         phase_ab = rng.uniform(0.0, 2.0 * np.pi)
         phase_g1 = rng.uniform(0.0, 2.0 * np.pi)
         phase_g2 = rng.uniform(0.0, 2.0 * np.pi)
         for li, layer in enumerate(layer_order):
-            mask = (neurons.area.to_numpy() == area) & (neurons.layer.to_numpy() == layer) & (neurons.cell_type.to_numpy() == "E")
+            mask = (
+                (neurons.area.to_numpy() == area)
+                & (neurons.layer.to_numpy() == layer)
+                & (neurons.cell_type.to_numpy() == "E")
+            )
             if not np.any(mask):
                 continue
             ab = ab_layer_gain[li] * np.sin(2.0 * np.pi * sim.alpha_beta_hz * t + phase_ab)
@@ -561,13 +647,16 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
     grid = make_regular_grid((nxy, nxy, nz), (h, h, h))
     coords = np.asarray(grid.coords)
     center_xy = np.array([radius_m, radius_m], dtype=float)
-    active = ((coords[..., 0] - center_xy[0]) ** 2 + (coords[..., 1] - center_xy[1]) ** 2) <= radius_m**2
+    active = (
+        (coords[..., 0] - center_xy[0]) ** 2 + (coords[..., 1] - center_xy[1]) ** 2
+    ) <= radius_m**2
     grid = grid._replace(active_mask=active)
     Gamma = isotropic_gamma(sim.conductivity_s_m, grid.shape)
     assert_passive_spd(Gamma)
     contact_depths_m = np.linspace(0.0, init.cz_m, sim.n_contacts)
     grid_z_m = np.arange(grid.shape[2]) * grid.dx[2]
-    ix = int(round(radius_m / grid.dx[0])); iy = int(round(radius_m / grid.dx[1]))
+    ix = int(round(radius_m / grid.dx[0]))
+    iy = int(round(radius_m / grid.dx[1]))
     radius_source = max(sim.source_radius_rel * init.cz_m, h)
     basis: dict[str, Any] = {}
     neurons = model.neurons
@@ -590,10 +679,14 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
             return_p = p.copy()
             return_p[2] = np.clip(init.l4_ref_rel * init.cz_m, 0.0, init.cz_m)
             eta_src = gaussian_mollifier(grid, np.asarray(p, dtype=np.float32), radius_source)
-            eta_ret = gaussian_mollifier(grid, np.asarray(return_p, dtype=np.float32), radius_source)
+            eta_ret = gaussian_mollifier(
+                grid, np.asarray(return_p, dtype=np.float32), radius_source
+            )
             q_unit = eta_src - eta_ret
             q_integral = float(conservation_error(grid, q_unit, np.asarray(0.0, dtype=np.float32)))
-            phi = jacobi_poisson_neumann_smoke(q_unit, grid, conductivity_s_m=sim.conductivity_s_m, steps=sim.jacobi_steps)
+            phi = jacobi_poisson_neumann_smoke(
+                q_unit, grid, conductivity_s_m=sim.conductivity_s_m, steps=sim.jacobi_steps
+            )
             # Existing repo solver returns bare phi; compute minimal residual metadata here.
             J = current_density(phi, Gamma, grid)
             csd = divergence_neumann_zero(J, grid)
@@ -606,13 +699,17 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
             csd_basis.append(np.interp(contact_depths_m, grid_z_m, csd_np[ix, iy, :]))
             conservation_abs.append(abs(q_integral))
             residual_abs.append(abs(residual))
-            solver_records.append({"area": area, "residual_norm": residual, "conservation_abs": abs(q_integral)})
+            solver_records.append(
+                {"area": area, "residual_norm": residual, "conservation_abs": abs(q_integral)}
+            )
         basis[area] = {
             "mask": mask,
             "lfp_basis": np.asarray(lfp_basis, np.float32),
             "csd_basis": np.asarray(csd_basis, np.float32),
             "contact_depths_m": contact_depths_m.astype(np.float32),
-            "basis_conservation_max_abs": float(np.max(conservation_abs) if conservation_abs else 0.0),
+            "basis_conservation_max_abs": float(
+                np.max(conservation_abs) if conservation_abs else 0.0
+            ),
             "solver_residual_max": float(np.max(residual_abs) if residual_abs else 0.0),
             "gauge": "mean_zero",
             "boundary_condition": "homogeneous_neumann_smoke",
@@ -624,7 +721,9 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
     return basis
 
 
-def simulate(tfne_model: SimpleNamespace, sim: JTFNESimConfig | Mapping[str, Any]) -> SimpleNamespace:
+def simulate(
+    tfne_model: SimpleNamespace, sim: JTFNESimConfig | Mapping[str, Any]
+) -> SimpleNamespace:
     """Simulate emitter dynamics and TFNE LFP/CSD readouts."""
     if isinstance(sim, Mapping):
         sim = _dataclass_from_dict(JTFNESimConfig, sim)
@@ -633,7 +732,9 @@ def simulate(tfne_model: SimpleNamespace, sim: JTFNESimConfig | Mapping[str, Any
     scale = IzhikevichTFNEScale(sim.source_scale_A_per_native)
     trials = []
     for k in range(sim.n_trials):
-        raw = _simulate_emitters(tfne_model, sim, tfne_model.config_init.seed + sim.seed_offset + 1009 * k)
+        raw = _simulate_emitters(
+            tfne_model, sim, tfne_model.config_init.seed + sim.seed_offset + 1009 * k
+        )
         trial = {"time_ms": raw["time_ms"], "dt_ms": raw["dt_ms"]}
         for area, b in tfne_model.tfne_basis.items():
             currents_native = raw["source_native"][:, b["mask"]]
@@ -645,7 +746,11 @@ def simulate(tfne_model: SimpleNamespace, sim: JTFNESimConfig | Mapping[str, Any
                 "csd_contacts": currents_A @ b["csd_basis"],
                 "contact_depths_m": b["contact_depths_m"],
                 "neurons": tfne_model.neurons.loc[b["mask"]].reset_index(drop=True),
-                "metadata": {k: v for k, v in b.items() if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}},
+                "metadata": {
+                    k: v
+                    for k, v in b.items()
+                    if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}
+                },
             }
         trials.append(trial)
     return SimpleNamespace(
@@ -654,7 +759,12 @@ def simulate(tfne_model: SimpleNamespace, sim: JTFNESimConfig | Mapping[str, Any
         trials=trials,
         truth_mode=tfne_model.truth_mode,
         claim_level=tfne_model.claim_level,
-        units={"time": "ms", "voltage": "mV", "lfp_contacts": "V_proxy", "csd_contacts": "A/m^3_proxy"},
+        units={
+            "time": "ms",
+            "voltage": "mV",
+            "lfp_contacts": "V_proxy",
+            "csd_contacts": "A/m^3_proxy",
+        },
     )
 
 
@@ -677,7 +787,9 @@ def _band_profile(signal: Array, dt_ms: float, freqs: Array, band: tuple[float, 
     return (prof - prof.min()) / (prof.max() - prof.min())
 
 
-def spectrolaminar_summary(tfne_signals: SimpleNamespace, opt: JTFNEOptConfig | None = None) -> tuple[pd.DataFrame, dict[str, Any]]:
+def spectrolaminar_summary(
+    tfne_signals: SimpleNamespace, opt: JTFNEOptConfig | None = None
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     if opt is None:
         opt = JTFNEOptConfig(sim=tfne_signals.sim_config)
     freqs = np.linspace(1.0, 150.0, 96)
@@ -703,9 +815,28 @@ def spectrolaminar_summary(tfne_signals: SimpleNamespace, opt: JTFNEOptConfig | 
         else:
             anticorr = 0.0
         l4_cross = float(abs(np.interp(0.0, y, ab) - np.interp(0.0, y, gm)))
-        similarity = float(np.clip(100.0 * np.exp(-3.0 * (error + 0.25 * ((anticorr + 1.0) / 2.0) + 0.50 * l4_cross)), 0.0, 100.0))
-        specs[area] = {"pos_from_l4": y, "alpha_beta": ab, "gamma": gm, "target_alpha_beta": tab, "target_gamma": tgm}
-        rows.append({"area": area, "similarity_percent": similarity, "anticorr": anticorr, "l4_cross_abs": l4_cross})
+        similarity = float(
+            np.clip(
+                100.0 * np.exp(-3.0 * (error + 0.25 * ((anticorr + 1.0) / 2.0) + 0.50 * l4_cross)),
+                0.0,
+                100.0,
+            )
+        )
+        specs[area] = {
+            "pos_from_l4": y,
+            "alpha_beta": ab,
+            "gamma": gm,
+            "target_alpha_beta": tab,
+            "target_gamma": tgm,
+        }
+        rows.append(
+            {
+                "area": area,
+                "similarity_percent": similarity,
+                "anticorr": anticorr,
+                "l4_cross_abs": l4_cross,
+            }
+        )
     return pd.DataFrame(rows), specs
 
 
@@ -725,7 +856,9 @@ def _spike_synchrony_kappa(spikes: Array, bin_ms: float, dt_ms: float) -> float:
     return float((observed - expected) / denom)
 
 
-def evaluate(tfne_model_or_signals: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any]) -> SimpleNamespace:
+def evaluate(
+    tfne_model_or_signals: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any]
+) -> SimpleNamespace:
     """Evaluate spectrolaminar score and sanity diagnostics."""
     if isinstance(opt, Mapping):
         opt = _dataclass_from_dict(JTFNEOptConfig, opt)
@@ -740,14 +873,16 @@ def evaluate(tfne_model_or_signals: SimpleNamespace, opt: JTFNEOptConfig | Mappi
         for tr in signals.trials:
             spikes = tr[area]["spikes"]
             fr = spikes.mean(axis=0) * 1000.0 / tr["dt_ms"]
-            sanity_rows.append({
-                "area": area,
-                "mean_firing_rate_hz": float(np.mean(fr)),
-                "silent_fraction": float(np.mean(fr <= 1e-9)),
-                "kappa": _spike_synchrony_kappa(spikes, 10.0, tr["dt_ms"]),
-                "voltage_min_mV": float(np.min(tr[area]["voltage_mV"])),
-                "voltage_max_mV": float(np.max(tr[area]["voltage_mV"])),
-            })
+            sanity_rows.append(
+                {
+                    "area": area,
+                    "mean_firing_rate_hz": float(np.mean(fr)),
+                    "silent_fraction": float(np.mean(fr <= 1e-9)),
+                    "kappa": _spike_synchrony_kappa(spikes, 10.0, tr["dt_ms"]),
+                    "voltage_min_mV": float(np.min(tr[area]["voltage_mV"])),
+                    "voltage_max_mV": float(np.max(tr[area]["voltage_mV"])),
+                }
+            )
     sanity = pd.DataFrame(sanity_rows).groupby("area", as_index=False).mean(numeric_only=True)
     return SimpleNamespace(
         scores=scores,
@@ -761,7 +896,9 @@ def evaluate(tfne_model_or_signals: SimpleNamespace, opt: JTFNEOptConfig | Mappi
     )
 
 
-def optimize(tfne_model: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any]) -> SimpleNamespace:
+def optimize(
+    tfne_model: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any]
+) -> SimpleNamespace:
     """Black-box sweep over declared plasticity/synaptic-gain/noise variables."""
     if isinstance(opt, Mapping):
         opt = _dataclass_from_dict(JTFNEOptConfig, opt)
@@ -774,11 +911,20 @@ def optimize(tfne_model: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any
             for local_inh_gain in opt.sweep_local_inh_gain:
                 for feedback_gain in opt.sweep_feedback_gain:
                     eval_i += 1
-                    sim = replace(opt.sim, n_trials=opt.eval_n_trials, noise_scale=noise_scale, local_exc_gain=local_exc_gain, local_inh_gain=local_inh_gain, feedback_gain=feedback_gain)
+                    sim = replace(
+                        opt.sim,
+                        n_trials=opt.eval_n_trials,
+                        noise_scale=noise_scale,
+                        local_exc_gain=local_exc_gain,
+                        local_inh_gain=local_inh_gain,
+                        feedback_gain=feedback_gain,
+                    )
                     signals = simulate(tfne_model, sim)
                     ev = evaluate(signals, opt)
                     kappa_penalty = float(np.mean(ev.sanity.kappa.to_numpy() ** 2))
-                    objective = ev.min_similarity - 100.0 * opt.synchrony_kappa_weight * kappa_penalty
+                    objective = (
+                        ev.min_similarity - 100.0 * opt.synchrony_kappa_weight * kappa_penalty
+                    )
                     row = {
                         "eval": eval_i,
                         "noise_scale": noise_scale,
@@ -796,11 +942,23 @@ def optimize(tfne_model: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any
                         best_sim = sim
                     if eval_i >= opt.max_evals or row["min_similarity"] >= opt.similarity_target:
                         log = pd.DataFrame(rows)
-                        out = SimpleNamespace(model=tfne_model, best_sim=best_sim, best=best, optimization_log=log, truth_mode=tfne_model.truth_mode)
+                        out = SimpleNamespace(
+                            model=tfne_model,
+                            best_sim=best_sim,
+                            best=best,
+                            optimization_log=log,
+                            truth_mode=tfne_model.truth_mode,
+                        )
                         tfne_model.optimization = out
                         return tfne_model
     log = pd.DataFrame(rows)
-    out = SimpleNamespace(model=tfne_model, best_sim=best_sim, best=best, optimization_log=log, truth_mode=tfne_model.truth_mode)
+    out = SimpleNamespace(
+        model=tfne_model,
+        best_sim=best_sim,
+        best=best,
+        optimization_log=log,
+        truth_mode=tfne_model.truth_mode,
+    )
     tfne_model.optimization = out
     return tfne_model
 
@@ -810,7 +968,9 @@ def optimize(tfne_model: SimpleNamespace, opt: JTFNEOptConfig | Mapping[str, Any
 # -----------------------------------------------------------------------------
 
 
-def visualize(tfne_signals: SimpleNamespace, vis: JTFNEVisConfig | Mapping[str, Any]) -> dict[str, Any]:
+def visualize(
+    tfne_signals: SimpleNamespace, vis: JTFNEVisConfig | Mapping[str, Any]
+) -> dict[str, Any]:
     """Create Plotly visual summaries and optionally write HTML/JSON artifacts."""
     if isinstance(vis, Mapping):
         vis = _dataclass_from_dict(JTFNEVisConfig, vis)
@@ -829,22 +989,49 @@ def visualize(tfne_signals: SimpleNamespace, vis: JTFNEVisConfig | Mapping[str, 
     fig = go.Figure()
     colors = {"E": "orange", "PV": "royalblue", "SST": "gold", "VIP": "purple"}
     for ct, sub in neurons.groupby("cell_type"):
-        fig.add_trace(go.Scatter3d(
-            x=sub.x_m * 1e6, y=sub.y_m * 1e6, z=sub.z_m * 1e6,
-            mode="markers", marker=dict(size=3, color=colors.get(ct, "gray")), name=ct,
-            text=[f"{r.area} {r.layer} {r.cell_type} #{r.neuron_id}" for r in sub.itertuples()],
-        ))
-    fig.update_layout(title=f"{vis.title_prefix}: cortical network 3D", scene=dict(zaxis_title="depth um", xaxis_title="x um", yaxis_title="y um"))
+        fig.add_trace(
+            go.Scatter3d(
+                x=sub.x_m * 1e6,
+                y=sub.y_m * 1e6,
+                z=sub.z_m * 1e6,
+                mode="markers",
+                marker=dict(size=3, color=colors.get(ct, "gray")),
+                name=ct,
+                text=[f"{r.area} {r.layer} {r.cell_type} #{r.neuron_id}" for r in sub.itertuples()],
+            )
+        )
+    fig.update_layout(
+        title=f"{vis.title_prefix}: cortical network 3D",
+        scene=dict(zaxis_title="depth um", xaxis_title="x um", yaxis_title="y um"),
+    )
     figures["network3d"] = fig
 
     evaluation = evaluate(tfne_signals, JTFNEOptConfig(sim=tfne_signals.sim_config))
     for area, spec in evaluation.specs.items():
-        fig2 = make_subplots(rows=1, cols=2, subplot_titles=("Laminar profiles", "First-trial LFP/CSD"))
+        fig2 = make_subplots(
+            rows=1, cols=2, subplot_titles=("Laminar profiles", "First-trial LFP/CSD")
+        )
         y = spec["pos_from_l4"]
-        fig2.add_trace(go.Scatter(x=spec["alpha_beta"], y=y, name="alpha/beta", mode="lines+markers"), row=1, col=1)
-        fig2.add_trace(go.Scatter(x=spec["gamma"], y=y, name="gamma", mode="lines+markers"), row=1, col=1)
+        fig2.add_trace(
+            go.Scatter(x=spec["alpha_beta"], y=y, name="alpha/beta", mode="lines+markers"),
+            row=1,
+            col=1,
+        )
+        fig2.add_trace(
+            go.Scatter(x=spec["gamma"], y=y, name="gamma", mode="lines+markers"), row=1, col=1
+        )
         tr = tfne_signals.trials[0][area]
-        fig2.add_trace(go.Heatmap(z=tr["csd_contacts"].T, x=tfne_signals.trials[0]["time_ms"], y=tr["contact_depths_m"] * 1e6, colorscale="RdBu", name="CSD"), row=1, col=2)
+        fig2.add_trace(
+            go.Heatmap(
+                z=tr["csd_contacts"].T,
+                x=tfne_signals.trials[0]["time_ms"],
+                y=tr["contact_depths_m"] * 1e6,
+                colorscale="RdBu",
+                name="CSD",
+            ),
+            row=1,
+            col=2,
+        )
         fig2.update_layout(title=f"{vis.title_prefix}: {area} spectrolaminar/activity suite")
         figures[f"spectrolaminar_{area}"] = fig2
 
@@ -852,7 +1039,9 @@ def visualize(tfne_signals: SimpleNamespace, vis: JTFNEVisConfig | Mapping[str, 
         for name, figobj in figures.items():
             figobj.write_html(out_dir / f"{name}.html")
     if vis.write_json:
-        manifest = write_manifest(tfne_signals, out_dir, evaluation=evaluation, figure_names=list(figures.keys()))
+        manifest = write_manifest(
+            tfne_signals, out_dir, evaluation=evaluation, figure_names=list(figures.keys())
+        )
         figures["manifest"] = manifest
     if vis.show:
         for figobj in figures.values():
@@ -869,17 +1058,31 @@ def _hash_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def write_manifest(tfne_signals: SimpleNamespace, out_dir: str | Path, *, evaluation: SimpleNamespace | None = None, figure_names: list[str] | None = None) -> dict[str, Any]:
+def write_manifest(
+    tfne_signals: SimpleNamespace,
+    out_dir: str | Path,
+    *,
+    evaluation: SimpleNamespace | None = None,
+    figure_names: list[str] | None = None,
+) -> dict[str, Any]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    cfg_hash = hashlib.sha256(json.dumps(asdict(tfne_signals.sim_config), sort_keys=True, default=str).encode()).hexdigest()
+    cfg_hash = hashlib.sha256(
+        json.dumps(asdict(tfne_signals.sim_config), sort_keys=True, default=str).encode()
+    ).hexdigest()
     basis_meta = {}
     for area, b in tfne_signals.model.tfne_basis.items():
-        basis_meta[area] = {k: v for k, v in b.items() if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}}
+        basis_meta[area] = {
+            k: v
+            for k, v in b.items()
+            if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}
+        }
     manifest = {
         "truth_mode": tfne_signals.truth_mode,
         "claim_level": tfne_signals.claim_level,
-        "interpretation": "developmental TFNE-Izhikevich spectrolaminar readout demo, not biological proof",
+        "interpretation": (
+            "developmental TFNE-Izhikevich spectrolaminar readout demo, not biological proof"
+        ),
         "config_hash": cfg_hash,
         "model": {
             "n_neurons": int(len(tfne_signals.model.neurons)),
@@ -888,8 +1091,14 @@ def write_manifest(tfne_signals: SimpleNamespace, out_dir: str | Path, *, evalua
             "mode": tfne_signals.model.config_init.mode,
         },
         "field": basis_meta,
-        "simulation": {"n_trials": len(tfne_signals.trials), "dt_ms": tfne_signals.sim_config.dt_ms, "t_ms": tfne_signals.sim_config.t_ms},
-        "evaluation": None if evaluation is None else {
+        "simulation": {
+            "n_trials": len(tfne_signals.trials),
+            "dt_ms": tfne_signals.sim_config.dt_ms,
+            "t_ms": tfne_signals.sim_config.t_ms,
+        },
+        "evaluation": None
+        if evaluation is None
+        else {
             "mean_similarity": evaluation.mean_similarity,
             "min_similarity": evaluation.min_similarity,
             "scores": evaluation.scores.to_dict(orient="records"),
@@ -904,7 +1113,21 @@ def write_manifest(tfne_signals: SimpleNamespace, out_dir: str | Path, *, evalua
 
 
 __all__ = [
-    "JTFNEConfig", "JTFNEInitConfig", "JTFNESimConfig", "JTFNEVisConfig", "JTFNEOptConfig",
-    "default_cfg", "save_cfg", "load_cfg", "construct", "save_model", "load_model",
-    "simulate", "visualize", "evaluate", "optimize", "spectrolaminar_summary", "write_manifest",
+    "JTFNEConfig",
+    "JTFNEInitConfig",
+    "JTFNESimConfig",
+    "JTFNEVisConfig",
+    "JTFNEOptConfig",
+    "default_cfg",
+    "save_cfg",
+    "load_cfg",
+    "construct",
+    "save_model",
+    "load_model",
+    "simulate",
+    "visualize",
+    "evaluate",
+    "optimize",
+    "spectrolaminar_summary",
+    "write_manifest",
 ]
