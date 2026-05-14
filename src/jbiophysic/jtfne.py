@@ -32,8 +32,18 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from jbiophysic.analysis.diagnostics import (
+    area_diagnostics,
+    celltype_diagnostics,
+    synchrony_diagnostics,
+)
 from jbiophysic.cells.izhikevich import FAST_SPIKING, LOW_THRESHOLD_SPIKING, REGULAR_SPIKING
+from jbiophysic.io.manifests import json_safe, write_json_manifest
 from jbiophysic.models.tfne_izhikevich import IzhikevichTFNEScale, izh_current_to_ampere
+from jbiophysic.objectives.spectrolaminar import (
+    compute_motif_vector,
+    motif_gate_score,
+)
 from jbiophysic.tfne import (
     conservation_error,
     current_density,
@@ -43,6 +53,7 @@ from jbiophysic.tfne import (
     jacobi_poisson_neumann_smoke,
     make_regular_grid,
 )
+from jbiophysic.tfne.operator_status import operator_status_json
 from jbiophysic.tfne.validation import assert_no_nan_inf, assert_passive_spd
 
 Array = np.ndarray
@@ -118,6 +129,9 @@ class JTFNESimConfig:
     t_ms: float = 1000.0
     n_trials: int = 10
     seed_offset: int = 0
+    time_window_ms: tuple[float, float] = (-500.0, 1000.0)
+    event_window_ms: tuple[float, float] = (0.0, 500.0)
+    post_window_ms: tuple[float, float] = (500.0, 1000.0)
     init_v_mV: float = -64.0
     init_v_sd_mV: float = 4.0
     eta_tau_ms: float = 8.0
@@ -244,6 +258,9 @@ def _dataclass_from_dict(cls, data: Mapping[str, Any]):
         d = dict(data)
         if "drive" in d:
             d["drive"] = {k: tuple(v) for k, v in d["drive"].items()}
+        for k in ("time_window_ms", "event_window_ms", "post_window_ms"):
+            if k in d and isinstance(d[k], list):
+                d[k] = tuple(d[k])
         return JTFNESimConfig(**d)
     if cls is JTFNEVisConfig:
         return JTFNEVisConfig(**dict(data))
@@ -684,13 +701,22 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
             )
             q_unit = eta_src - eta_ret
             q_integral = float(conservation_error(grid, q_unit, np.asarray(0.0, dtype=np.float32)))
-            phi = jacobi_poisson_neumann_smoke(
+            solution = jacobi_poisson_neumann_smoke(
                 q_unit, grid, conductivity_s_m=sim.conductivity_s_m, steps=sim.jacobi_steps
             )
-            # Existing repo solver returns bare phi; compute minimal residual metadata here.
+            # Support both older bare-phi solver output and newer FieldSolution(phi_e=...) output.
+            phi = getattr(solution, "phi_e", solution)
             J = current_density(phi, Gamma, grid)
             csd = divergence_neumann_zero(J, grid)
+            q_np = np.asarray(q_unit, dtype=float)
             residual = float(np.sqrt(np.mean(np.asarray(csd - q_unit, dtype=float) ** 2)))
+            residual_rel = float(
+                np.linalg.norm(np.asarray(csd - q_unit, dtype=float).ravel())
+                / (np.linalg.norm(q_np.ravel()) + 1e-30)
+            )
+            kernel_norm_error = float(
+                abs(float(np.sum(np.asarray(eta_src) * float(grid.voxel_volume))) - 1.0)
+            )
             assert_no_nan_inf("jtfne_phi_basis", phi)
             assert_no_nan_inf("jtfne_csd_basis", csd)
             phi_np = np.asarray(phi, dtype=float)
@@ -700,7 +726,13 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
             conservation_abs.append(abs(q_integral))
             residual_abs.append(abs(residual))
             solver_records.append(
-                {"area": area, "residual_norm": residual, "conservation_abs": abs(q_integral)}
+                {
+                    "area": area,
+                    "residual_norm": residual,
+                    "solver_residual_l2_relative": residual_rel,
+                    "conservation_abs": abs(q_integral),
+                    "kernel_norm_error": kernel_norm_error,
+                }
             )
         basis[area] = {
             "mask": mask,
@@ -711,10 +743,43 @@ def _build_tfne_basis(model: SimpleNamespace, sim: JTFNESimConfig) -> dict[str, 
                 np.max(conservation_abs) if conservation_abs else 0.0
             ),
             "solver_residual_max": float(np.max(residual_abs) if residual_abs else 0.0),
-            "gauge": "mean_zero",
+            "solver_residual_l2_relative": float(
+                np.max(
+                    [
+                        r.get("solver_residual_l2_relative", 0.0)
+                        for r in solver_records
+                        if r.get("area") == area
+                    ]
+                )
+                if solver_records
+                else 0.0
+            ),
+            "kernel_norm_max_abs_error": float(
+                np.max(
+                    [
+                        r.get("kernel_norm_error", 0.0)
+                        for r in solver_records
+                        if r.get("area") == area
+                    ]
+                )
+                if solver_records
+                else 0.0
+            ),
+            "integrated_current_error_max_abs": float(
+                np.max(conservation_abs) if conservation_abs else 0.0
+            ),
+            "neumann_compatibility_max_abs": float(
+                np.max(conservation_abs) if conservation_abs else 0.0
+            ),
+            "gauge_type": "mean_zero",
+            "gauge_residual_abs": 0.0,
             "boundary_condition": "homogeneous_neumann_smoke",
+            "solver_name": "jacobi_poisson_neumann_smoke",
+            "conductivity_min_eigenvalue": float(sim.conductivity_s_m),
+            "conductivity_symmetric_error": 0.0,
+            "source_projection_mode": "source_sink_return_current",
             "source_projection": "source_sink_return_current",
-            "source_calibration_status": "calibrated_proxy_A_per_native",
+            "source_calibration_status": "toy_scale_A_per_native_not_empirical",
         }
     model.tfne_basis = basis
     model.tfne_solver_records = pd.DataFrame(solver_records)
@@ -822,17 +887,27 @@ def spectrolaminar_summary(
                 100.0,
             )
         )
+        m_model = compute_motif_vector(ab, gm, y)
+        m_target = compute_motif_vector(tab, tgm, y)
+        motif_gate = motif_gate_score(m_model)
         specs[area] = {
             "pos_from_l4": y,
             "alpha_beta": ab,
             "gamma": gm,
             "target_alpha_beta": tab,
             "target_gamma": tgm,
+            "motif_vector": m_model.as_array(),
+            "target_vector": m_target.as_array(),
         }
         rows.append(
             {
                 "area": area,
+                "motif_gate_percent": motif_gate,
+                "profile_score_percent": similarity,
+                "legacy_profile_score": similarity,
                 "similarity_percent": similarity,
+                "S_lam": np.nan,
+                "score_type": "profile_score_no_null",
                 "anticorr": anticorr,
                 "l4_cross_abs": l4_cross,
             }
@@ -868,28 +943,31 @@ def evaluate(
         sim = replace(opt.sim, n_trials=opt.eval_n_trials)
         signals = simulate(tfne_model_or_signals, sim)
     scores, specs = spectrolaminar_summary(signals, opt)
-    sanity_rows = []
-    for area in signals.model.config_init.area_order:
-        for tr in signals.trials:
-            spikes = tr[area]["spikes"]
-            fr = spikes.mean(axis=0) * 1000.0 / tr["dt_ms"]
-            sanity_rows.append(
-                {
-                    "area": area,
-                    "mean_firing_rate_hz": float(np.mean(fr)),
-                    "silent_fraction": float(np.mean(fr <= 1e-9)),
-                    "kappa": _spike_synchrony_kappa(spikes, 10.0, tr["dt_ms"]),
-                    "voltage_min_mV": float(np.min(tr[area]["voltage_mV"])),
-                    "voltage_max_mV": float(np.max(tr[area]["voltage_mV"])),
-                }
-            )
-    sanity = pd.DataFrame(sanity_rows).groupby("area", as_index=False).mean(numeric_only=True)
+    cell_diag = celltype_diagnostics(signals.trials, signals.model.config_init.area_order)
+    sync_diag = synchrony_diagnostics(signals.trials, signals.model.config_init.area_order)
+    area_diag = area_diagnostics(signals.trials, signals.model.config_init.area_order)
+    sanity = (
+        sync_diag.groupby("area", as_index=False)
+        .mean(numeric_only=True)
+        .merge(
+            cell_diag.groupby("area", as_index=False)[
+                ["firing_rate_mean_hz", "silent_fraction", "voltage_min_mV", "voltage_max_mV"]
+            ].mean(numeric_only=True),
+            on="area",
+            how="left",
+        )
+    )
     return SimpleNamespace(
         scores=scores,
         specs=specs,
         sanity=sanity,
-        mean_similarity=float(scores.similarity_percent.mean()),
-        min_similarity=float(scores.similarity_percent.min()),
+        celltype_diagnostics=cell_diag,
+        synchrony_diagnostics=sync_diag,
+        area_diagnostics=area_diag,
+        mean_similarity=float(scores.profile_score_percent.mean()),
+        min_similarity=float(scores.profile_score_percent.min()),
+        mean_motif_gate=float(scores.motif_gate_percent.mean()),
+        min_motif_gate=float(scores.motif_gate_percent.min()),
         truth_mode=signals.truth_mode,
         claim_level="developmental_demo",
         interpretation="readout-level convergence test; not biological proof or unique mechanism",
@@ -921,7 +999,10 @@ def optimize(
                     )
                     signals = simulate(tfne_model, sim)
                     ev = evaluate(signals, opt)
-                    kappa_penalty = float(np.mean(ev.sanity.kappa.to_numpy() ** 2))
+                    kappa_col = (
+                        "fleiss_kappa_proxy" if "fleiss_kappa_proxy" in ev.sanity else "kappa"
+                    )
+                    kappa_penalty = float(np.mean(ev.sanity[kappa_col].to_numpy() ** 2))
                     objective = (
                         ev.min_similarity - 100.0 * opt.synchrony_kappa_weight * kappa_penalty
                     )
@@ -1058,6 +1139,118 @@ def _hash_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def operator_status() -> dict[str, dict[str, object]]:
+    """Return machine-readable TFNE operator implementation status."""
+    return operator_status_json()
+
+
+def status() -> dict[str, dict[str, object]]:
+    """Alias for :func:`operator_status` for notebook ergonomics."""
+    return operator_status()
+
+
+def operator_graph() -> list[str]:
+    """Return formal TFNE operator order exposed by the facade."""
+    return ["E_theta", "S_WDR", "C_mu_nu", "Q_eta_alpha", "F_Omega_B_G_Gamma", "P", "A", "O", "C"]
+
+
+def validate(obj: SimpleNamespace) -> SimpleNamespace:
+    """Return lightweight validation report for a model or signals object."""
+    failures: list[str] = []
+    warnings: list[str] = []
+    if hasattr(obj, "trials"):
+        for area in obj.model.config_init.area_order:
+            for tr_i, tr in enumerate(obj.trials):
+                data = tr[area]
+                if data["spikes"].shape != data["voltage_mV"].shape:
+                    failures.append(f"{area} trial {tr_i}: spikes/voltage shape mismatch")
+                if data["lfp_contacts"].ndim != 2 or data["csd_contacts"].ndim != 2:
+                    failures.append(f"{area} trial {tr_i}: probe output must be [T,C]")
+                meta = data.get("metadata", {})
+                for key in (
+                    "source_calibration_status",
+                    "boundary_condition",
+                    "source_projection_mode",
+                ):
+                    if key not in meta:
+                        failures.append(f"{area} trial {tr_i}: missing metadata {key}")
+                if not np.all(np.isfinite(data["lfp_contacts"])) or not np.all(
+                    np.isfinite(data["csd_contacts"])
+                ):
+                    failures.append(f"{area} trial {tr_i}: non-finite probe values")
+    elif hasattr(obj, "neurons"):
+        if len(obj.neurons) <= 0:
+            failures.append("model has no neurons")
+        if getattr(obj, "truth_mode", None) != "truth_safe_unverified":
+            warnings.append("unexpected truth_mode")
+    else:
+        warnings.append("unknown object type for validation")
+    return SimpleNamespace(accepted=not failures, failures=failures, warnings=warnings)
+
+
+def manifest(
+    tfne_signals: SimpleNamespace, *, evaluation: SimpleNamespace | None = None
+) -> dict[str, Any]:
+    """Build JSON-safe manifest without writing it."""
+    cfg_hash = hashlib.sha256(
+        json.dumps(
+            json_safe(asdict(tfne_signals.sim_config)), sort_keys=True, allow_nan=False
+        ).encode()
+    ).hexdigest()
+    basis_meta = {}
+    field_rows = []
+    for area, b in tfne_signals.model.tfne_basis.items():
+        meta = {
+            k: v
+            for k, v in b.items()
+            if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}
+        }
+        basis_meta[area] = meta
+        field_rows.append({"area": area, **meta})
+    payload = {
+        "truth_mode": tfne_signals.truth_mode,
+        "claim_level": tfne_signals.claim_level,
+        "interpretation": (
+            "developmental TFNE-Izhikevich spectrolaminar readout demo; "
+            "not biological proof, mechanism proof, or calibrated amplitude evidence"
+        ),
+        "config_hash": cfg_hash,
+        "operator_status": operator_status(),
+        "operator_graph": operator_graph(),
+        "model": {
+            "n_neurons": int(len(tfne_signals.model.neurons)),
+            "areas": list(tfne_signals.model.config_init.area_order),
+            "cell_types": list(tfne_signals.model.config_init.cell_types),
+            "mode": tfne_signals.model.config_init.mode,
+        },
+        "field": basis_meta,
+        "array_layout": {"current_density": "channel_first"},
+        "simulation": {
+            "n_trials": len(tfne_signals.trials),
+            "dt_ms": tfne_signals.sim_config.dt_ms,
+            "t_ms": tfne_signals.sim_config.t_ms,
+            "time_window_ms": list(tfne_signals.sim_config.time_window_ms),
+            "event_window_ms": list(tfne_signals.sim_config.event_window_ms),
+            "post_window_ms": list(tfne_signals.sim_config.post_window_ms),
+        },
+        "evaluation": None
+        if evaluation is None
+        else {
+            "mean_profile_score_percent": evaluation.mean_similarity,
+            "min_profile_score_percent": evaluation.min_similarity,
+            "mean_motif_gate_percent": evaluation.mean_motif_gate,
+            "min_motif_gate_percent": evaluation.min_motif_gate,
+            "score_notice": (
+                "S_lam is null-normalized and is null "
+                "unless a declared null distribution is supplied."
+            ),
+            "scores": evaluation.scores.to_dict(orient="records"),
+            "sanity": evaluation.sanity.to_dict(orient="records"),
+        },
+    }
+    return json_safe(payload)
+
+
 def write_manifest(
     tfne_signals: SimpleNamespace,
     out_dir: str | Path,
@@ -1067,49 +1260,12 @@ def write_manifest(
 ) -> dict[str, Any]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    cfg_hash = hashlib.sha256(
-        json.dumps(asdict(tfne_signals.sim_config), sort_keys=True, default=str).encode()
-    ).hexdigest()
-    basis_meta = {}
-    for area, b in tfne_signals.model.tfne_basis.items():
-        basis_meta[area] = {
-            k: v
-            for k, v in b.items()
-            if k not in {"mask", "lfp_basis", "csd_basis", "contact_depths_m"}
-        }
-    manifest = {
-        "truth_mode": tfne_signals.truth_mode,
-        "claim_level": tfne_signals.claim_level,
-        "interpretation": (
-            "developmental TFNE-Izhikevich spectrolaminar readout demo, not biological proof"
-        ),
-        "config_hash": cfg_hash,
-        "model": {
-            "n_neurons": int(len(tfne_signals.model.neurons)),
-            "areas": list(tfne_signals.model.config_init.area_order),
-            "cell_types": list(tfne_signals.model.config_init.cell_types),
-            "mode": tfne_signals.model.config_init.mode,
-        },
-        "field": basis_meta,
-        "simulation": {
-            "n_trials": len(tfne_signals.trials),
-            "dt_ms": tfne_signals.sim_config.dt_ms,
-            "t_ms": tfne_signals.sim_config.t_ms,
-        },
-        "evaluation": None
-        if evaluation is None
-        else {
-            "mean_similarity": evaluation.mean_similarity,
-            "min_similarity": evaluation.min_similarity,
-            "scores": evaluation.scores.to_dict(orient="records"),
-            "sanity": evaluation.sanity.to_dict(orient="records"),
-        },
-        "figures": figure_names or [],
-    }
+    payload = manifest(tfne_signals, evaluation=evaluation)
+    payload["figures"] = figure_names or []
     path = out_dir / "manifest.json"
-    path.write_text(json.dumps(manifest, indent=2))
-    manifest["manifest_sha256"] = _hash_file(path)
-    return manifest
+    write_json_manifest(path, payload)
+    payload["manifest_sha256"] = _hash_file(path)
+    return payload
 
 
 __all__ = [
@@ -1130,4 +1286,9 @@ __all__ = [
     "optimize",
     "spectrolaminar_summary",
     "write_manifest",
+    "status",
+    "operator_status",
+    "operator_graph",
+    "validate",
+    "manifest",
 ]

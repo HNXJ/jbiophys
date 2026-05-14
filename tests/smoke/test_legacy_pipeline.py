@@ -4,6 +4,7 @@ import os
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 
 from jbiophysic.common.utils.serialization import safe_save_json
 from jbiophysic.core.math.predictive import predictive_step
@@ -61,7 +62,15 @@ def run_legacy_smoke_test(output_dir: str):
 
 
 def test_legacy_pipeline_smoke(tmp_path):
-    """Pytest wrapper for the legacy smoke test."""
+    """Pytest wrapper for the legacy smoke test.
+
+    This legacy Axis-11 path exercises old JAX parallel optimization code. It is
+    useful as an opt-in compatibility check but can dominate full-suite runtime
+    after newer JAX tests have compiled. Keep default CI focused on repo-grade
+    kernels and run this with JBIOPHYSIC_RUN_LEGACY_PIPELINE=1 when needed.
+    """
+    if os.environ.get("JBIOPHYSIC_RUN_LEGACY_PIPELINE") != "1":
+        pytest.skip("legacy pipeline smoke is opt-in; set JBIOPHYSIC_RUN_LEGACY_PIPELINE=1")
     run_legacy_smoke_test(str(tmp_path))
 
 

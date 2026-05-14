@@ -72,3 +72,14 @@ def test_optimize_runs_declared_sweep_without_mutating_claim_level():
     assert hasattr(optimized, "optimization")
     assert len(optimized.optimization.optimization_log) >= 1
     assert optimized.truth_mode == "truth_safe_unverified"
+
+
+def test_scores_split_motif_gate_from_profile_score():
+    cfg = jtfne.default_cfg("correct", smoke=True)
+    model = jtfne.construct(cfg.init)
+    sig = jtfne.simulate(model, cfg.sim)
+    ev = jtfne.evaluate(sig, cfg.opt)
+    assert "motif_gate_percent" in ev.scores.columns
+    assert "profile_score_percent" in ev.scores.columns
+    assert set(ev.scores.score_type) == {"profile_score_no_null"}
+    assert ev.scores.S_lam.isna().all()
