@@ -1,0 +1,82 @@
+init:
+  mode: correct
+  seed: 20260513
+  n_neuron_per_column: 200
+  truth_mode: truth_safe_unverified
+  claim_level: developmental_demo
+sim:
+  dt_ms: 0.1
+  t_ms: 1000.0
+  n_trials: 10
+  source_scale_A_per_native: 1.0e-13
+  conductivity_s_m: 0.3
+  jacobi_steps: 24
+  n_contacts: 16
+vis:
+  output_dir: outputs/jtfne_spectrolaminar_paired
+  write_html: true
+  write_json: true
+  show: false
+opt:
+  eval_n_trials: 3
+  max_evals: 12
+  similarity_target: 75.0
+metadata:
+  previous_bundle_status: PROTOTYPE / NOT CLAIM-ACCEPTED
+  description: Controlled scaffold config; not biological proof.
+pairing:
+  paired_ablation_id: spectrolaminar_correct_vs_inverse_ei_ratio
+  invariant_config_hash: null
+  manipulated_fields:
+  - init.mode
+  - init.layer_cell_fractions
+pairing_policy:
+  shared_neuron_ids: true
+  shared_positions: true
+  shared_area_layer_assignment: true
+  shared_layer_counts: true
+  cell_type_allocation_only_differs: true
+truth_mode: truth_safe_unverified
+claim_level: controlled_ablation_scaffold
+ratio_mode: correct
+paired_ablation_id: spectrolaminar_correct_vs_inverse_ei_ratio
+seed_list:
+- 20260513
+- 20261522
+time_window_ms:
+- -500.0
+- 1000.0
+event_window_ms:
+- 0.0
+- 500.0
+post_window_ms:
+- 500.0
+- 1000.0
+source_calibration_status: toy_scale_A_per_native_not_empirical
+field_readout:
+  same_grid_required: true
+  same_contact_geometry_required: true
+solver:
+  boundary_condition: homogeneous_neumann_smoke
+  gauge: mean_zero
+  residual_tol: null
+analysis:
+  bands:
+    alpha_beta:
+    - 8
+    - 30
+    gamma:
+    - 35
+    - 90
+  tfr_requires_full_window: true
+  per_frequency_normalization_allowed_as_primary_evidence: false
+statistics:
+  smoke_paired_seeds_min: 2
+  serious_paired_seeds_min: 10
+  preferred_paired_seeds_min: 20
+nulls:
+  layer_shuffle: false
+  band_label_shuffle: false
+  phase_randomized: false
+  uniform_gain: false
+  no_field_projection: false

@@ -13,43 +13,50 @@ Experimental computational neuroscience framework for:
 
 **Scope:** Exploratory research infrastructure for computational neuroscience. Not a validated biological simulator. Optimizer success is not biological proof.
 
-**Python:** Requires Python >=3.10. Baseline validated on Python 3.11.15 with 96/96 tests passing.
+**Python:** Requires Python >=3.10. Baseline validated on Python 3.11.15 with 61/61 tests passing.
 
 **Dependencies:**
-- **Core (required):** numpy, scipy, pandas, PyYAML, jax, jaxlib, equinox, optax, diffrax
-- **Tutorials (optional):** jupyter, nbformat, nbconvert, ipykernel, matplotlib
-- **Development (optional):** pytest, pytest-cov, ruff, black
+- **Core:** numpy, scipy, pandas, PyYAML (minimal)
+- **JAX:** jax, jaxlib, equinox, optax, diffrax (optional, [jax] extra)
+- **Tutorials:** jupyter, nbformat, nbconvert, ipykernel, matplotlib (optional, [tutorials] extra)
+- **Development:** pytest, pytest-cov, ruff, black (optional, [dev] extra)
 
 **JAX & Optax Status:**
-- JAX (0.10.0): Core requirement. CPU-safe baseline, all tests pass.
-- Optax (0.2.8): Included for GSDR/AGSDR optimization. No override of custom optimizers required.
+- JAX (0.10.0): Core package uses 53 imports, 52 jax.numpy uses. CPU-safe baseline.
+- Optax (0.2.8): Available as optional [jax] extra; not required by core imports.
 - pmap/pjit: Current fallback-to-vmap CPU behavior is preserved; modernization is optional future work.
 - PRNG: Explicit key discipline enforced; same seed → same result.
 
 ## Install
 
-Default (core + JAX):
+Minimal (core only):
 
 ```bash
 pip install -e .
 ```
 
-Development (core + tests):
+Development (tests):
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-Tutorials (core + executable notebooks):
+JAX stack (neural modeling):
+
+```bash
+pip install -e ".[jax]"
+```
+
+Tutorials (executable notebooks):
 
 ```bash
 pip install -e ".[tutorials]"
 ```
 
-Full stack (core + dev + tutorials):
+Full stack (everything):
 
 ```bash
-pip install -e ".[dev,tutorials]"
+pip install -e ".[jax,tutorials,dev]"
 ```
 
 ## Quick Validation
@@ -58,7 +65,23 @@ pip install -e ".[dev,tutorials]"
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python3 -m pytest -q
 ```
 
-Expected: 61 passed, 0 failed.
+Expected baseline may vary by branch; current archive bundle validates with targeted TFNE/JTFNE tests and strict manifest checks. Run the full command before claiming branch acceptance.
+
+
+## JTFNE spectrolaminar CLI (developmental scaffold)
+
+The spectrolaminar workflow can be run deterministically through the CLI:
+
+    PYTHONPATH=src python scripts/run_spectrolaminar_suite.py \
+      --config configs/spectrolaminar_v1.yaml \
+      --seed 0 \
+      --out outputs/spectrolaminar_v1_seed0 \
+      --smoke
+
+Outputs include `manifest.json`, `metrics.csv`, `celltype_diagnostics.csv`,
+`field_invariants.csv`, `operator_status.json`, and `asset_hashes.json`.
+These are developmental/proxy readouts under `truth_safe_unverified`; they are
+not biological proof, mechanism proof, or calibrated CSD/EEG/MEG amplitude evidence.
 
 ## Tutorials
 

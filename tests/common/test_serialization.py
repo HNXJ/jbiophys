@@ -1,35 +1,34 @@
-# tests/common/test_serialization.py
+import json
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
-from jbiophysic.common.utils.serialization import safe_serialize_json
+from jbiophysic.io.manifests import hash_assets, json_safe, write_json_manifest
 
 
-def test_nan_to_null_conversion():
-    print("🧪 Testing NaN to null JSON conversion")
-
-    # 1. Prepare dummy trace data with problematic values
-    data = {
-        "neuron_id": 101,
-        "membrane_potential": [-65.0, -40.0, np.nan, -70.0],
-        "conductance": np.array([0.1, 0.5, np.inf, 0.2]),
-        "meta": {"status": "completed", "error_code": np.nan},
+def test_manifest_no_nan_inf_json(tmp_path):
+    payload = {
+        "nan": np.nan,
+        "inf": np.inf,
+        "ninf": -np.inf,
+        "arr": np.asarray([1.0, np.nan, np.inf]),
+        "df": pd.DataFrame({"x": [1.0, np.nan]}),
+        "path": Path("abc"),
     }
-
-    # 2. Serialize using the new utility
-    json_str = safe_serialize_json(data)
-
-    print("--- Serialized JSON Output ---")
-    print(json_str)
-    print("------------------------------")
-
-    # 3. Validation checks
-    assert "null" in json_str
-    assert "NaN" not in json_str
-    assert "Infinity" not in json_str
-
-    print("✅ Serialization validation successful: NaNs and Infs correctly converted to null.")
+    safe = json_safe(payload)
+    text = json.dumps(safe, allow_nan=False)
+    assert "NaN" not in text
+    assert safe["nan"] is None
+    path = tmp_path / "manifest.json"
+    write_json_manifest(path, payload)
+    loaded = json.loads(path.read_text())
+    assert loaded["inf"] is None
 
 
-if __name__ == "__main__":
-    test_nan_to_null_conversion()
+def test_hash_assets(tmp_path):
+    p = tmp_path / "a.txt"
+    p.write_text("abc")
+    hashes = hash_assets([p, tmp_path / "missing.txt"])
+    assert str(p) in hashes
+    assert len(hashes[str(p)]) == 64

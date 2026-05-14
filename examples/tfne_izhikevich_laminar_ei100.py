@@ -430,12 +430,13 @@ def compute_tfne_field_snapshots(
             # Sum sparse neuron currents into conserved volumetric source q(x,y,z).
             q = np.tensordot(currents_A.astype(np.float32), kernels, axes=(0, 0)).astype(np.float32)
             q = np.where(grid.active_mask, q, 0.0).astype(np.float32)
-            phi = jacobi_poisson_neumann_smoke(
+            solution = jacobi_poisson_neumann_smoke(
                 q,
                 grid,
                 conductivity_s_m=cfg.conductivity_s_m,
                 steps=cfg.poisson_steps,
             )
+            phi = getattr(solution, "phi_e", solution)
             q_snaps[snap_i] = q
             phi_snaps[snap_i] = phi
             source_current_A_snaps[snap_i] = currents_A.astype(np.float32)
