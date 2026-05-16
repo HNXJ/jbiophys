@@ -1,14 +1,31 @@
 # src/jbiophysic/models/builders/populations.py
-import jaxley as jx
-from jaxley.channels import HH
-
 from jbiophysic.common.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+_JAXLEY_MSG = (
+    "This feature requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
+
+try:
+    import jaxley as jx
+    from jaxley.channels import HH
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    jx = None
+    HH = None
+    _JAXLEY_AVAILABLE = False
+
+
+def _require_jaxley():
+    if not _JAXLEY_AVAILABLE:
+        raise ImportError(_JAXLEY_MSG)
+
 
 def build_pyramidal_cell():
     """Morphological instantiation for Layer 5/23 PC using Jaxley."""
+    _require_jaxley()
     soma = jx.Branch(ncomp=1)
     apical = jx.Branch(ncomp=1)
     basal = jx.Branch(ncomp=1)
@@ -22,6 +39,7 @@ def build_pyramidal_cell():
 
 def build_interneuron(cell_type="PV"):
     """Interneuron morphologies (PV/SST/VIP)."""
+    _require_jaxley()
     cell = jx.Cell([jx.Branch(ncomp=1)], parents=[-1])
     cell.insert(HH())
     if cell_type == "PV":
@@ -35,6 +53,7 @@ def build_interneuron(cell_type="PV"):
 
 def construct_column():
     """Assembles a local cortical column with explicit population labels."""
+    _require_jaxley()
     logger.info("Constructing cortical column populations (PC, PV, SST, VIP)")
     n_pc, n_pv, n_sst, n_vip = 2, 1, 1, 1
 

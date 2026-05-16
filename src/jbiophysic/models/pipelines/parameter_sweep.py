@@ -10,7 +10,6 @@ This script demonstrates the 'Worked Example' logic from Sherfey et al. (2018):
 """
 
 import jax.numpy as jnp
-import jaxley as jx
 
 from jbiophysic.common.types.simulation import SimulationConfig
 from jbiophysic.common.utils.logging import get_logger
@@ -20,8 +19,22 @@ from jbiophysic.models.simulation.batch import run_batch_simulation
 
 logger = get_logger(__name__)
 
+_JAXLEY_MSG = (
+    "This feature requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
+
+try:
+    import jaxley as jx
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    jx = None
+    _JAXLEY_AVAILABLE = False
+
 
 def run_ia_sweep():
+    if not _JAXLEY_AVAILABLE:
+        raise ImportError(_JAXLEY_MSG)
     logger.info("🎬 Starting DynaSim-style Parameter Sweep: IA Conductance")
 
     # 1. Build a single compartment neuron with HH and IA

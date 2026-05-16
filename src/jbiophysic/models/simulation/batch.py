@@ -1,17 +1,24 @@
 # src/jbiophysic/models/simulation/batch.py
 
-import jax.numpy as jnp
-import jaxley as jx
-
 from jbiophysic.common.types.simulation import SimulationConfig, SimulationResult
 from jbiophysic.common.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+_JAXLEY_MSG = (
+    "This feature requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
 
-def run_batch_simulation(
-    brain: jx.Network, config: SimulationConfig, param_grid: dict[str, jnp.ndarray]
-) -> list[SimulationResult]:
+try:
+    import jaxley as jx
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    jx = None
+    _JAXLEY_AVAILABLE = False
+
+
+def run_batch_simulation(brain, config: SimulationConfig, param_grid: dict) -> list:
     """
     Executes multiple simulations in parallel using JAX vmap.
     Achieves functional parity with DynaSim's 'batch' simulation mode.
@@ -22,6 +29,8 @@ def run_batch_simulation(
         param_grid: Dictionary where keys are parameter names (e.g., "gna")
                    and values are arrays of values to sweep.
     """
+    if not _JAXLEY_AVAILABLE:
+        raise ImportError(_JAXLEY_MSG)
     logger.info(f"🚀 Initializing Batch Simulation (N={len(next(iter(param_grid.values())))})")
 
     # 1. Define the vectorized integration function

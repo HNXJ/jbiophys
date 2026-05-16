@@ -54,7 +54,7 @@ Every Claude Code report for jbiophysic must begin and end with:
 ```bash
 cd /Users/hamednejat/workspace/main/jbiophysic
 source .venv/bin/activate
-python --version  # Python 3.11.15
+python --version  # Python >=3.10 required; local env observed Python 3.13.7 (3.11.15 was historical baseline)
 ```
 
 **Installation command (verified):**
@@ -408,9 +408,9 @@ Every Claude Code session ends with this format:
 ```bash
 cd /Users/hamednejat/workspace/main/jbiophysic
 source .venv/bin/activate
-python --version  # Should be 3.11.15
+python --version  # Should be >=3.10; local env observed Python 3.13.7
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python -m pytest -q --tb=short
-# Expected: 61 passed, 0 failed
+# Expected: 109 passed, 8 skipped (as of v1.1.1)
 ```
 
 **Standard workflow:**

@@ -1,22 +1,35 @@
-import jaxley as jx
-from jaxley.synapses import IonotropicSynapse
-
 from jbiophysic.models.builders.populations import construct_column
 
+_JAXLEY_MSG = (
+    "This feature requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
 
-class ExcSynapse(IonotropicSynapse):
+try:
+    import jaxley as jx
+    from jaxley.synapses import IonotropicSynapse as _IonotropicSynapse
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    jx = None
+    _IonotropicSynapse = object
+    _JAXLEY_AVAILABLE = False
+
+
+class ExcSynapse(_IonotropicSynapse):
     pass
 
 
-class InhSynapse(IonotropicSynapse):
+class InhSynapse(_IonotropicSynapse):
     pass
 
 
-def build_v1_column_jaxley(params: dict[str, float]) -> jx.Network:
+def build_v1_column_jaxley(params: dict[str, float]):
     """
     Instantiates PC, PV, SST, VIP populations using the shared builder.
     Configures a PING-style gamma network using built-in HH mechanisms.
     """
+    if not _JAXLEY_AVAILABLE:
+        raise ImportError(_JAXLEY_MSG)
     net = construct_column()
 
     # 1. Parameter Extraction

@@ -1,7 +1,6 @@
 from typing import Any
 
 import jax.numpy as jnp
-import jaxley as jx
 import numpy as np
 from scipy.signal import welch
 
@@ -10,6 +9,18 @@ from jbiophysic.models.builders.v1_column_model import build_v1_column_jaxley
 from jbiophysic.models.training.stability_gatekeeper import evaluate_stability
 
 logger = get_logger(__name__)
+
+_JAXLEY_MSG = (
+    "This feature requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
+
+try:
+    import jaxley as jx
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    jx = None
+    _JAXLEY_AVAILABLE = False
 
 
 def compute_gamma_ratio(v_trace: jnp.ndarray, fs: float, onset_idx: int) -> float:
@@ -50,6 +61,8 @@ def run_v1_gamma_bridge_payload(payload_dict: dict) -> dict[str, Any]:
     4. Evaluate stability on real state tensors.
     5. Return empirically derived bundle.
     """
+    if not _JAXLEY_AVAILABLE:
+        raise ImportError(_JAXLEY_MSG)
     logger.info("Executing real V1 Gamma Bridge Payload with built-in HH.")
 
     params = payload_dict.get("params", {})

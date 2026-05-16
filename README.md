@@ -13,7 +13,7 @@ Experimental computational neuroscience framework for:
 
 **Scope:** Exploratory research infrastructure for computational neuroscience. Not a validated biological simulator. Optimizer success is not biological proof.
 
-**Python:** Requires Python >=3.10. Validated on Python 3.10 / 3.11 / 3.12 (GitHub Actions CI). Current suite: 106 passed, 8 skipped with full [jax,dev] install.
+**Python:** Requires Python >=3.10. Validated on Python 3.10 / 3.11 / 3.12 (GitHub Actions CI). Current suite: 109 passed, 8 skipped with full [jax,dev] install.
 
 **Dependencies:**
 - **Core:** numpy, scipy, pandas, PyYAML (minimal — no JAX required for install)

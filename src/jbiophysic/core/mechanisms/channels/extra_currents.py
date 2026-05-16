@@ -1,9 +1,32 @@
 # src/jbiophysic/core/mechanisms/channels/extra_currents.py
 import jax.numpy as jnp
-from jaxley.channels import Channel
+
+_JAXLEY_MSG = (
+    "jbiophysic.core.mechanisms.channels requires optional dependency 'jaxley'. "
+    "Install with: pip install -e \".[jaxley]\""
+)
+
+try:
+    from jaxley.channels import Channel as _Channel
+    _JAXLEY_AVAILABLE = True
+except ImportError:
+    _JAXLEY_AVAILABLE = False
+    _Channel = object
 
 
-class IA(Channel):
+def _jaxley_required(cls):
+    """Class decorator: raises ImportError at instantiation when jaxley is absent."""
+    orig_init = cls.__init__
+    def _guarded_init(self, *args, **kwargs):
+        if not _JAXLEY_AVAILABLE:
+            raise ImportError(_JAXLEY_MSG)
+        return orig_init(self, *args, **kwargs)
+    cls.__init__ = _guarded_init
+    return cls
+
+
+@_jaxley_required
+class IA(_Channel):
     """
     Transient A-type Potassium current (Axis 11).
     DynaSim parity: 'iA.mech'.
@@ -48,7 +71,8 @@ class IA(Channel):
         return params["gka"] * (states["m"] ** 4) * states["h"] * (v - params["ek"])
 
 
-class Ih(Channel):
+@_jaxley_required
+class Ih(_Channel):
     """
     Hyperpolarization-activated HCN current.
     DynaSim parity: 'iH.mech'.
@@ -83,7 +107,8 @@ class Ih(Channel):
         return params["gh"] * states["m"] * (v - params["eh"])
 
 
-class IM(Channel):
+@_jaxley_required
+class IM(_Channel):
     """
     Slow Muscarinic M-type Potassium current.
     DynaSim parity: 'iM.mech'.
@@ -117,7 +142,8 @@ class IM(Channel):
         return params["gkm"] * states["m"] * (v - params["ek"])
 
 
-class ICa(Channel):
+@_jaxley_required
+class ICa(_Channel):
     """
     High-threshold L-type Calcium current.
     DynaSim parity: used for dendritic spikes and plateau potentials.
@@ -144,7 +170,8 @@ class ICa(Channel):
         return params["gca"] * (states["m"] ** 2) * states["h"] * (v - params["eca"])
 
 
-class ICaT(Channel):
+@_jaxley_required
+class ICaT(_Channel):
     """
     Low-threshold T-type Calcium current.
     DynaSim parity: used for rebound bursting in thalamic models.
@@ -171,7 +198,8 @@ class ICaT(Channel):
         return params["gcat"] * (states["m"] ** 2) * states["h"] * (v - params["eca"])
 
 
-class IKDR(Channel):
+@_jaxley_required
+class IKDR(_Channel):
     """
     Delayed Rectifier Potassium current (DynaSim iKDR).
 
@@ -201,7 +229,8 @@ class IKDR(Channel):
         return params["gkdr"] * (states["n"] ** 4) * (v - params["ek"])
 
 
-class IAR(Channel):
+@_jaxley_required
+class IAR(_Channel):
     """
     Anomalous Rectifier (Inwardly rectifying current, iAR).
     DynaSim parity: 'iAR.mech'.
@@ -235,7 +264,8 @@ class IAR(Channel):
         return params["gar"] * states["m"] * (v - params["erev"])
 
 
-class CaDynamics(Channel):
+@_jaxley_required
+class CaDynamics(_Channel):
     """
     Intracellular Calcium concentration dynamics.
     DynaSim parity: 'CaBuffer.mech'.
@@ -273,7 +303,8 @@ class CaDynamics(Channel):
         return 0.0  # This is a regulatory mechanism, not a current carrier
 
 
-class ICan(Channel):
+@_jaxley_required
+class ICan(_Channel):
     """
     Calcium-activated Non-selective cation current (iCan).
     DynaSim parity: 'iCan.mech'.
