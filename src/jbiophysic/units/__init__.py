@@ -14,8 +14,20 @@ from .conversions import (
     uS_to_nS,
     V_to_mV,
 )
+from .dtype_comparison import (
+    DtypeComparisonResult,
+    compare_dtype_passive_membrane,
+    dtype_comparison_report,
+)
+from .stability import (
+    finite_value_check,
+    integration_stability_report,
+    magnitude_diagnostics,
+    monotonic_blow_up_check,
+)
 
 __all__ = [
+    # Conversions
     "mV_to_V",
     "V_to_mV",
     "pA_to_nA",
@@ -26,4 +38,13 @@ __all__ = [
     "mm_to_um",
     "tau_membrane_ms",
     "conductance_per_soma_area",
+    # Dtype comparison (v0.1.3)
+    "DtypeComparisonResult",
+    "compare_dtype_passive_membrane",
+    "dtype_comparison_report",
+    # Stability diagnostics (v0.1.4)
+    "finite_value_check",
+    "magnitude_diagnostics",
+    "monotonic_blow_up_check",
+    "integration_stability_report",
 ]
