@@ -356,6 +356,106 @@ def simulate_with_jaxfne(
     return v, u, spikes
 
 
+def get_receptor_info() -> dict[str, dict]:
+    """Return jaxfne's standard receptor kinetics info.
+
+    Useful for understanding receptor properties (tau, sign, reversal potential)
+    used in simulations.
+
+    Returns
+    -------
+    dict
+        Mapping receptor names to spec dicts with keys:
+        - receptor_index: int (0-3)
+        - sign: int (1 for excitatory, -1 for inhibitory)
+        - tau_ms: float (time constant in milliseconds)
+        - reversal_mV: float or None (reversal potential)
+        - source_calibration_status: str
+        - claim_level: str
+    """
+    specs = standard_receptor_specs()
+    result = {}
+    for name, spec in specs.items():
+        result[name] = {
+            "receptor_index": spec.receptor_index,
+            "sign": spec.sign,
+            "tau_ms": spec.tau_ms,
+            "reversal_mV": spec.reversal_mV,
+            "source_calibration_status": spec.source_calibration_status,
+            "claim_level": spec.claim_level,
+        }
+    return result
+
+
+def diagnose_connectivity(
+    eig_network: EIGNetwork,
+    edges: EdgeList,
+) -> dict[str, Any]:
+    """Generate diagnostic statistics about network connectivity.
+
+    Parameters
+    ----------
+    eig_network : EIGNetwork
+        Network to analyze.
+
+    edges : EdgeList
+        Connectivity to analyze.
+
+    Returns
+    -------
+    dict
+        Statistics including:
+        - n_neurons: int
+        - n_edges: int
+        - connection_density: float
+        - receptor_counts: dict
+        - edge_weight_stats: dict (mean, std, min, max)
+        - excitatory_fraction: float
+        - cell_type_distribution: dict
+    """
+    n_neurons = len(eig_network.params.a)
+    n_edges = len(edges.pre)
+    max_edges = n_neurons * (n_neurons - 1)
+    connection_density = n_edges / max_edges if max_edges > 0 else 0.0
+
+    # Receptor counts
+    receptor_counts = {}
+    for i in range(4):
+        count = (edges.receptor_index == i).sum()
+        if count > 0:
+            receptor_names = ["AMPA", "GABA_A", "NMDA", "GABA_B"]
+            receptor_counts[receptor_names[i]] = int(count)
+
+    # Weight statistics
+    weights = np.asarray(edges.weight)
+    edge_weight_stats = {
+        "mean": float(np.mean(np.abs(weights))),
+        "std": float(np.std(weights)),
+        "min": float(np.min(weights)),
+        "max": float(np.max(weights)),
+        "n_nonzero": int(np.count_nonzero(weights)),
+    }
+
+    # Cell type distribution
+    labels_arr = np.array(eig_network.params.labels)
+    cell_types = {}
+    for ct in np.unique(labels_arr):
+        cell_types[ct] = int(np.sum(labels_arr == ct))
+
+    # Excitatory fraction
+    exc_fraction = cell_types.get("E", 0) / n_neurons if n_neurons > 0 else 0.0
+
+    return {
+        "n_neurons": n_neurons,
+        "n_edges": n_edges,
+        "connection_density": float(connection_density),
+        "receptor_counts": receptor_counts,
+        "edge_weight_stats": edge_weight_stats,
+        "excitatory_fraction": float(exc_fraction),
+        "cell_type_distribution": cell_types,
+    }
+
+
 def project_to_laminar_field(
     source_proxy: Array,  # (n_steps, n_neurons) or (n_neurons, n_steps)
     positions: Array,  # (n_neurons, 3) with normalized depth in [0, 1]

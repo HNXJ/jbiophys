@@ -280,6 +280,98 @@ class TestBackwardCompatibility:
         assert np.all(np.abs(edges.weight) > 0)
 
 
+class TestPhase3EnhancedConstructor:
+    """Test Phase 3: Enhanced construct() with jaxfne support."""
+
+    def test_construct_includes_jaxfne_by_default(self):
+        """Test that construct() includes jaxfne objects by default."""
+        from jbiophysic.jtfne import JTFNEInitConfig, construct
+
+        init = JTFNEInitConfig(n_neuron_per_column=20, seed=42)
+        model = construct(init)
+
+        assert hasattr(model, "eig_network")
+        assert hasattr(model, "edges")
+        assert model.eig_network is not None
+        assert model.edges is not None
+
+    def test_construct_optional_jaxfne(self):
+        """Test that construct(include_jaxfne=False) skips jaxfne."""
+        from jbiophysic.jtfne import JTFNEInitConfig, construct
+
+        init = JTFNEInitConfig(n_neuron_per_column=20, seed=42)
+        model = construct(init, include_jaxfne=False)
+
+        assert not hasattr(model, "eig_network")
+        assert not hasattr(model, "edges")
+
+    def test_construct_jaxfne_consistency(self):
+        """Test that jaxfne objects are consistent with legacy model."""
+        from jbiophysic.jtfne import JTFNEInitConfig, construct
+
+        init = JTFNEInitConfig(n_neuron_per_column=20, seed=42)
+        model = construct(init, include_jaxfne=True)
+
+        n_legacy = len(model.neurons)
+        n_jaxfne = len(model.eig_network.params.a)
+        assert n_legacy == n_jaxfne
+
+
+class TestPhase4ReceptorDiagnostics:
+    """Test Phase 4: Receptor kinetics and connectivity diagnostics."""
+
+    def test_get_receptor_info(self):
+        """Test that receptor info is accessible."""
+        from jbiophysic.jtfne import get_receptor_info
+
+        info = get_receptor_info()
+        assert len(info) >= 2  # At least AMPA and GABA_A
+        assert "AMPA" in info
+        assert "GABA_A" in info
+
+        # Check structure
+        for name, spec in info.items():
+            assert "receptor_index" in spec
+            assert "tau_ms" in spec
+            assert "sign" in spec
+            assert 0 <= spec["receptor_index"] <= 3
+            assert spec["tau_ms"] > 0
+
+    def test_diagnose_connectivity(self):
+        """Test that connectivity diagnostics work."""
+        from jbiophysic.jtfne import JTFNEInitConfig, construct, diagnose_connectivity
+
+        init = JTFNEInitConfig(n_neuron_per_column=20, seed=42)
+        model = construct(init, include_jaxfne=True)
+
+        diag = diagnose_connectivity(model.eig_network, model.edges)
+
+        assert "n_neurons" in diag
+        assert "n_edges" in diag
+        assert "connection_density" in diag
+        assert "receptor_counts" in diag
+        assert "cell_type_distribution" in diag
+        assert "excitatory_fraction" in diag
+
+        # Check values are reasonable
+        assert diag["n_neurons"] > 0
+        assert diag["n_edges"] > 0
+        assert 0 <= diag["connection_density"] <= 1
+        assert 0 <= diag["excitatory_fraction"] <= 1
+
+    def test_receptor_counts_sum(self):
+        """Test that receptor counts sum to total edges."""
+        from jbiophysic.jtfne import JTFNEInitConfig, construct, diagnose_connectivity
+
+        init = JTFNEInitConfig(n_neuron_per_column=20, seed=42)
+        model = construct(init, include_jaxfne=True)
+
+        diag = diagnose_connectivity(model.eig_network, model.edges)
+
+        receptor_total = sum(diag["receptor_counts"].values())
+        assert receptor_total == diag["n_edges"]
+
+
 class TestSimulateWithJaxfneBackend:
     """Test integration of jaxfne backend into jtfne.simulate()."""
 

@@ -59,6 +59,8 @@ from jbiophysic.tfne.validation import assert_no_nan_inf, assert_passive_spd
 # jaxfne integration (Phase 1+: unified backend for simulations and fields)
 try:
     from jbiophysic.jaxfne_integration import (
+        diagnose_connectivity,
+        get_receptor_info,
         jbiophysic_to_eig_network,
         project_to_laminar_field,
         simulate_with_jaxfne,
@@ -387,8 +389,30 @@ def _depth_to_l4_position(depth_m: Array | float, init: JTFNEInitConfig) -> Arra
     return np.asarray(depth_m, dtype=float) / init.cz_m - init.l4_ref_rel
 
 
-def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
-    """Construct a V1/V4/PFC laminar TFNE-Izhikevich network model."""
+def construct(
+    init: JTFNEInitConfig | Mapping[str, Any],
+    *,
+    include_jaxfne: bool = True,
+) -> SimpleNamespace:
+    """Construct a V1/V4/PFC laminar TFNE-Izhikevich network model.
+
+    Parameters
+    ----------
+    init : JTFNEInitConfig or dict
+        Initialization configuration.
+
+    include_jaxfne : bool, default True
+        If True and jaxfne available, include jaxfne EIGNetwork + EdgeList
+        in returned model for use with jaxfne backend.
+
+    Returns
+    -------
+    SimpleNamespace
+        Legacy model attributes (config_init, neurons, positions_m, W_parts, tfne_basis, etc.)
+        plus optional:
+        - eig_network: jaxfne.EIGNetwork (if include_jaxfne=True and jaxfne available)
+        - edges: jaxfne.EdgeList (if include_jaxfne=True and jaxfne available)
+    """
     if isinstance(init, Mapping):
         init = _dataclass_from_dict(JTFNEInitConfig, init)
     cfg = JTFNEConfig(init=init)
@@ -445,7 +469,28 @@ def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
     neurons = pd.DataFrame(rows)
     positions_m = np.vstack(positions).astype(np.float32)
     W_parts = _build_connectivity(neurons, positions_m, init, JTFNESimConfig())
-    return SimpleNamespace(
+
+    # Build jaxfne network if requested
+    eig_network = None
+    edges = None
+    if include_jaxfne and HAS_JAXFNE_INTEGRATION:
+        try:
+            eig_network, edges = jbiophysic_to_eig_network(
+                SimpleNamespace(
+                    neurons=neurons,
+                    positions_m=positions_m,
+                    W_parts=W_parts,
+                    config_init=init,
+                ),
+                use_receptor_exponential=True,
+                dtype="float32",
+            )
+        except Exception as e:
+            import warnings
+
+            warnings.warn(f"Failed to build jaxfne network: {e}", RuntimeWarning)
+
+    result = SimpleNamespace(
         config_init=init,
         neurons=neurons,
         positions_m=positions_m,
@@ -458,6 +503,13 @@ def construct(init: JTFNEInitConfig | Mapping[str, Any]) -> SimpleNamespace:
             "chemistry and optimizer feedback are optional/future operators"
         ),
     )
+
+    # Attach jaxfne objects if available
+    if eig_network is not None:
+        result.eig_network = eig_network
+        result.edges = edges
+
+    return result
 
 
 def _build_connectivity(
@@ -1438,4 +1490,6 @@ if HAS_JAXFNE_INTEGRATION:
         "jbiophysic_to_eig_network",
         "simulate_with_jaxfne",
         "project_to_laminar_field",
+        "get_receptor_info",
+        "diagnose_connectivity",
     ])
