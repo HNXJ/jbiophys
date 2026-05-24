@@ -371,7 +371,7 @@ def build_laminar_proxy_run(
     scale_to_calibration = {
         "toy": "toy_scale_not_empirical",
         "proxy": "uncalibrated_spike_only",
-        "calibrated": "calibrated_proxy",
+        "calibrated": "empirically_calibrated",
         "physical": "physical",
     }
     source_calibration_status = scale_to_calibration.get(source_scale, "uncalibrated_spike_only")

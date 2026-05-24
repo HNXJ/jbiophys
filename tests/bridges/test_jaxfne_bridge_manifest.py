@@ -128,11 +128,18 @@ def test_build_laminar_proxy_run_schema_complete():
 
 
 def test_laminar_proxy_run_source_scale_mapping():
-    """Test laminar proxy maps source_scale to calibration status correctly."""
+    """Test laminar proxy maps source_scale to calibration status correctly per doctrine.
+
+    Doctrine mapping (exact):
+    - toy → toy_scale_not_empirical
+    - proxy → uncalibrated_spike_only (default) or calibrated_proxy (if explicit metadata)
+    - calibrated → empirically_calibrated (NOT calibrated_proxy)
+    - physical → physical
+    """
     for scale, expected_status in [
         ("toy", "toy_scale_not_empirical"),
         ("proxy", "uncalibrated_spike_only"),
-        ("calibrated", "calibrated_proxy"),
+        ("calibrated", "empirically_calibrated"),  # CRITICAL: must be empirically_calibrated
         ("physical", "physical"),
     ]:
         manifest = build_laminar_proxy_run(
@@ -144,7 +151,7 @@ def test_laminar_proxy_run_source_scale_mapping():
         )
         assert (
             manifest["source_calibration_status"] == expected_status
-        ), f"Scale {scale} should map to {expected_status}"
+        ), f"Scale {scale} should map to {expected_status}, got {manifest['source_calibration_status']}"
 
 
 def test_manifest_validates():
