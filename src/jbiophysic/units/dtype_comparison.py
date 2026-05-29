@@ -112,9 +112,7 @@ def compare_dtype_passive_membrane(
     v_trace_32 = [v32]
 
     for _ in range(n_steps):
-        v32, _ = passive_membrane_step(
-            v32, dt_ms, I_inj_pA, g_L, E_L, C_m
-        )
+        v32, _ = passive_membrane_step(v32, dt_ms, I_inj_pA, g_L, E_L, C_m)
         v_trace_32.append(v32)
 
     v_trace_32 = jnp.array(v_trace_32, dtype=jnp.float32)
@@ -124,9 +122,7 @@ def compare_dtype_passive_membrane(
     v_trace_64 = [v64]
 
     for _ in range(n_steps):
-        v64, _ = passive_membrane_step(
-            v64, dt_ms, I_inj_pA, g_L, E_L, C_m
-        )
+        v64, _ = passive_membrane_step(v64, dt_ms, I_inj_pA, g_L, E_L, C_m)
         v_trace_64.append(v64)
 
     v_trace_64 = jnp.array(v_trace_64, dtype=jnp.float64)
@@ -140,9 +136,7 @@ def compare_dtype_passive_membrane(
 
     # Error metrics
     absolute_error = np.abs(v_trace_64_as_32 - v_trace_32_np)
-    relative_error = np.abs(
-        (v_trace_64_as_32 - v_trace_32_np) / (np.abs(v_trace_64_as_32) + 1e-6)
-    )
+    relative_error = np.abs((v_trace_64_as_32 - v_trace_32_np) / (np.abs(v_trace_64_as_32) + 1e-6))
 
     max_abs_err = float(np.max(absolute_error))
     max_rel_err = float(np.max(relative_error))

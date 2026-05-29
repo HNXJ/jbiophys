@@ -48,18 +48,14 @@ class TestPassiveMembraneStep:
     def test_step_basic(self):
         """Test basic forward Euler step."""
         V = -65.0
-        V_new = passive_membrane_step(
-            V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=0.0, dt_ms=1.0
-        )
+        V_new = passive_membrane_step(V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=0.0, dt_ms=1.0)
         # At rest (I_inj=0, V=E_L), dV/dt = 0, so V_new = V
         assert np.isclose(V_new, V)
 
     def test_step_with_depolarizing_current(self):
         """Test step with positive (depolarizing) current."""
         V = -65.0
-        V_new = passive_membrane_step(
-            V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=10.0, dt_ms=1.0
-        )
+        V_new = passive_membrane_step(V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=10.0, dt_ms=1.0)
         # I_inj > 0 should cause dV/dt > 0 (depolarization)
         # dV/dt = (-1.0*(-65-(-65)) + 10) / 100.0 = 10 / 100.0 = 0.1 mV/ms
         # V_new = -65 + 1.0 * 0.1 = -64.9 mV (depolarized)
@@ -75,8 +71,7 @@ class TestPassiveMembraneStep:
         # Take many small steps (total 500 ms = 5 * tau)
         for _ in range(5000):
             V = passive_membrane_step(
-                V, C_m=params.C_m, g_L=params.g_L, E_L=params.E_L,
-                I_inj=I_inj, dt_ms=0.1
+                V, C_m=params.C_m, g_L=params.g_L, E_L=params.E_L, I_inj=I_inj, dt_ms=0.1
             )
 
         # After 5*tau, should be >99% to steady state
@@ -85,9 +80,7 @@ class TestPassiveMembraneStep:
     def test_step_with_zero_current(self):
         """Test that V remains at rest if V=E_L and I_inj=0."""
         V = -65.0
-        V_new = passive_membrane_step(
-            V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=0.0, dt_ms=1.0
-        )
+        V_new = passive_membrane_step(V, C_m=100.0, g_L=1.0, E_L=-65.0, I_inj=0.0, dt_ms=1.0)
         assert np.isclose(V_new, V)
 
     def test_step_stability_criterion(self):
@@ -100,9 +93,7 @@ class TestPassiveMembraneStep:
 
         # Repeated stable stepping shouldn't blow up
         for _ in range(100):
-            V = passive_membrane_step(
-                V, C_m=C_m, g_L=g_L, E_L=-65.0, I_inj=10.0, dt_ms=dt_stable
-            )
+            V = passive_membrane_step(V, C_m=C_m, g_L=g_L, E_L=-65.0, I_inj=10.0, dt_ms=dt_stable)
             assert np.isfinite(V)
 
 

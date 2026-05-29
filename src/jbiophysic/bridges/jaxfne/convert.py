@@ -65,8 +65,7 @@ def jbiophysic_params_to_jaxfne(
             "extra_params": {
                 k: v
                 for k, v in jb_params.items()
-                if k not in ("g_Na", "g_K", "g_L", "E_Na", "E_K", "E_L",
-                           "C_m", "I_inj_pA", "V0")
+                if k not in ("g_Na", "g_K", "g_L", "E_Na", "E_K", "E_L", "C_m", "I_inj_pA", "V0")
             },
         }
     else:

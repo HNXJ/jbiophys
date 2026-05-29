@@ -118,9 +118,7 @@ class TestStabilityDiagnostics:
     def test_magnitude_diagnostics_in_range(self):
         """Test magnitude diagnostics with in-range values."""
         arr = np.linspace(-80, -50, 100)
-        report = magnitude_diagnostics(
-            arr, "voltage", expected_range=(-100, 0)
-        )
+        report = magnitude_diagnostics(arr, "voltage", expected_range=(-100, 0))
 
         assert report["in_range"]
         assert report["n_out_of_range"] == 0
@@ -128,9 +126,7 @@ class TestStabilityDiagnostics:
     def test_magnitude_diagnostics_out_of_range(self):
         """Test magnitude diagnostics with out-of-range values."""
         arr = np.array([-100, -50, 50, 100])
-        report = magnitude_diagnostics(
-            arr, "voltage", expected_range=(-80, 30)
-        )
+        report = magnitude_diagnostics(arr, "voltage", expected_range=(-80, 30))
 
         # -100 < -80 (OOR), -50 in range, 50 > 30 (OOR), 100 > 30 (OOR) = 3 OOR
         assert not report["in_range"]
@@ -275,9 +271,7 @@ class TestChapter1Integrity:
         # Run stability analysis
         voltage = np.sin(np.linspace(0, 10, 100)) * 10 - 65
         current = 10 * np.ones(100)
-        stability_report = integration_stability_report(
-            voltage, current, 0.1, "test"
-        )
+        stability_report = integration_stability_report(voltage, current, 0.1, "test")
 
         # Both must be JSON-serializable
         import json

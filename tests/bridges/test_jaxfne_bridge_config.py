@@ -3,7 +3,6 @@
 Focus: Config validation, canonical constants, time grid validation.
 """
 
-
 from jbiophysic.bridges.jaxfne import config
 
 

@@ -19,13 +19,13 @@ from jbiophysic.jtfne import JTFNEInitConfig, construct
 # Skip entire test module if jaxfne not available
 try:
     import jaxfne as jtfne  # noqa: F401
+
     JAXFNE_AVAILABLE = True
 except ImportError:
     JAXFNE_AVAILABLE = False
 
 pytestmark = pytest.mark.skipif(
-    not JAXFNE_AVAILABLE,
-    reason="jaxfne not installed (pip install -e '.[jaxfne]')"
+    not JAXFNE_AVAILABLE, reason="jaxfne not installed (pip install -e '.[jaxfne]')"
 )
 
 
@@ -130,9 +130,7 @@ class TestSynapticWeightOptimization:
         # Structure should be identical
         np.testing.assert_array_equal(scaled_edges.pre, original_edges.pre)
         np.testing.assert_array_equal(scaled_edges.post, original_edges.post)
-        np.testing.assert_array_equal(
-            scaled_edges.receptor_index, original_edges.receptor_index
-        )
+        np.testing.assert_array_equal(scaled_edges.receptor_index, original_edges.receptor_index)
 
 
 class TestConnectionMotifs:

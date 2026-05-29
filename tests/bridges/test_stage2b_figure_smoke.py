@@ -137,9 +137,9 @@ def test_stage2b_no_simulation_when_no_jaxfne_api():
             "jaxfne_unavailable",
             "no_supported_jaxfne_execution_api",
         ):
-            assert (
-                success is False
-            ), f"success must be False when dispatch_status={dispatch_status}, got {success}"
+            assert success is False, (
+                f"success must be False when dispatch_status={dispatch_status}, got {success}"
+            )
 
 
 def test_stage2b_no_fake_success_on_dispatch_failure():

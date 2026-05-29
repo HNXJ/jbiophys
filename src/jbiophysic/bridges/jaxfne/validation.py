@@ -101,9 +101,7 @@ def validate_manifest_json(
 
     # Check field types and values
     if "run_type" in manifest and manifest["run_type"] not in ALLOWED_RUN_TYPES:
-        errors.append(
-            f"run_type must be one of {ALLOWED_RUN_TYPES}, got {manifest['run_type']}"
-        )
+        errors.append(f"run_type must be one of {ALLOWED_RUN_TYPES}, got {manifest['run_type']}")
 
     if "source_type" in manifest and manifest["source_type"] not in ALLOWED_SOURCE_TYPES:
         errors.append(
@@ -153,10 +151,7 @@ def validate_manifest_json(
         errors.append("physical_amplitude_claim_allowed must be False in Stage 2")
 
     # Check resistive_forward_solved constraint
-    if (
-        strict_mode
-        and manifest.get("field_solver_status") == "resistive_forward_solved"
-    ):
+    if strict_mode and manifest.get("field_solver_status") == "resistive_forward_solved":
         # Require solver diagnostics
         operator_status = manifest.get("operator_status", {})
         f_field = operator_status.get("F_field", {})
@@ -212,8 +207,7 @@ def validate_report(
 
     if report.get("claim_level") != CLAIM_LEVEL:
         errors.append(
-            f"Report claim_level must be '{CLAIM_LEVEL}', "
-            f"got {report.get('claim_level')}"
+            f"Report claim_level must be '{CLAIM_LEVEL}', got {report.get('claim_level')}"
         )
 
     if strict_mode and report.get("physical_amplitude_claim_allowed", False):

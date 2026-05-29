@@ -1505,10 +1505,12 @@ __all__ = [
 
 # jaxfne integration (Phase 1+: unified backend)
 if HAS_JAXFNE_INTEGRATION:
-    __all__.extend([
-        "jbiophysic_to_eig_network",
-        "simulate_with_jaxfne",
-        "project_to_laminar_field",
-        "get_receptor_info",
-        "diagnose_connectivity",
-    ])
+    __all__.extend(
+        [
+            "jbiophysic_to_eig_network",
+            "simulate_with_jaxfne",
+            "project_to_laminar_field",
+            "get_receptor_info",
+            "diagnose_connectivity",
+        ]
+    )

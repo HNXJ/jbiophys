@@ -1,6 +1,5 @@
 """Unit tests for unit conversion utilities."""
 
-
 from jbiophysic.units import (
     V_to_mV,
     conductance_per_soma_area,

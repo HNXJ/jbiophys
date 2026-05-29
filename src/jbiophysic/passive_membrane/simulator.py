@@ -172,8 +172,7 @@ def passive_membrane_simulate(
         I_inj_array = np.asarray(I_inj, dtype=np.float64)
         if len(I_inj_array) != n_steps:
             raise ValueError(
-                f"I_inj array length {len(I_inj_array)} "
-                f"does not match n_steps {n_steps}"
+                f"I_inj array length {len(I_inj_array)} does not match n_steps {n_steps}"
             )
 
     V = V_init

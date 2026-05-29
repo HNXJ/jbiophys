@@ -245,9 +245,7 @@ def hh_find_rest_voltage(
         Voltage at which I_rhs ≈ 0 (equilibrium voltage, mV).
     """
     voltages = np.linspace(v_min, v_max, n_grid)
-    rhs_currents = np.array(
-        [hh_rhs_current_at_steady_gates(float(v), params) for v in voltages]
-    )
+    rhs_currents = np.array([hh_rhs_current_at_steady_gates(float(v), params) for v in voltages])
     idx = int(np.argmin(np.abs(rhs_currents)))
     return float(voltages[idx])
 

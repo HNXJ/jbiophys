@@ -12,6 +12,7 @@ import numpy as np
 
 class HHStateCheckResult(NamedTuple):
     """Result of HH state validation."""
+
     all_finite: bool
     V_finite: bool
     m_finite: bool
@@ -86,6 +87,7 @@ def hh_state_check(
 
 class HHSpikeDetectionResult(NamedTuple):
     """Result of spike detection."""
+
     n_spikes: int
     spike_indices: list
     peak_voltage_mV: float
@@ -141,6 +143,7 @@ def hh_spike_detection(
 
 class HHStabilityReport(NamedTuple):
     """Comprehensive stability and validity report."""
+
     is_stable: bool
     all_finite: bool
     gates_valid: bool

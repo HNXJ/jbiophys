@@ -17,13 +17,13 @@ from jbiophysic.jtfne import JTFNEInitConfig, construct
 # Skip entire test module if jaxfne not available
 try:
     import jaxfne as jtfne  # noqa: F401
+
     JAXFNE_AVAILABLE = True
 except ImportError:
     JAXFNE_AVAILABLE = False
 
 pytestmark = pytest.mark.skipif(
-    not JAXFNE_AVAILABLE,
-    reason="jaxfne not installed (pip install -e '.[jaxfne]')"
+    not JAXFNE_AVAILABLE, reason="jaxfne not installed (pip install -e '.[jaxfne]')"
 )
 
 

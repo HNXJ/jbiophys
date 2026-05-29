@@ -146,9 +146,7 @@ def test_laminar_proxy_run_source_scale_mapping():
             duration_ms=500.0,
             dt_ms=0.1,
         )
-        assert (
-            manifest["source_calibration_status"] == expected_status
-        ), (
+        assert manifest["source_calibration_status"] == expected_status, (
             f"Scale {scale} should map to {expected_status}, "
             f"got {manifest['source_calibration_status']}"
         )

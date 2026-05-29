@@ -468,8 +468,8 @@ def get_jaxfne_report(
             "dispatch_status": "no_supported_jaxfne_execution_api",
             "success": False,
             "errors": [
-                "jaxfne imported but no supported execution API found. "
-                "Available APIs in jaxfne:", list(dir(jtfne))
+                "jaxfne imported but no supported execution API found. Available APIs in jaxfne:",
+                list(dir(jtfne)),
             ],
             "jaxfne_version": jaxfne_version,
             "truth_mode": "truth_safe_unverified",
