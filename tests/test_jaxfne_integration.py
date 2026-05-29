@@ -10,21 +10,22 @@ import pytest
 # Skip entire test module if jaxfne not available
 try:
     import jaxfne as jtfne  # noqa: F401
+
     JAXFNE_AVAILABLE = True
 except ImportError:
     JAXFNE_AVAILABLE = False
 
 pytestmark = pytest.mark.skipif(
-    not JAXFNE_AVAILABLE,
-    reason="jaxfne not installed (pip install -e '.[jaxfne]')"
+    not JAXFNE_AVAILABLE, reason="jaxfne not installed (pip install -e '.[jaxfne]')"
 )
 
-from jbiophysic.jaxfne_integration import (
-    jbiophysic_to_eig_network,
-    project_to_laminar_field,
-    simulate_with_jaxfne,
-)
-from jbiophysic.jtfne import JTFNEInitConfig, construct
+if JAXFNE_AVAILABLE:
+    from jbiophysic.jaxfne_integration import (
+        jbiophysic_to_eig_network,
+        project_to_laminar_field,
+        simulate_with_jaxfne,
+    )
+    from jbiophysic.jtfne import JTFNEInitConfig, construct
 
 
 @pytest.fixture
@@ -346,7 +347,7 @@ class TestPhase4ReceptorDiagnostics:
         assert "GABA_A" in info
 
         # Check structure
-        for name, spec in info.items():
+        for _name, spec in info.items():
             assert "receptor_index" in spec
             assert "tau_ms" in spec
             assert "sign" in spec
@@ -393,8 +394,9 @@ class TestSimulateWithJaxfneBackend:
 
     def test_simulate_jaxfne_backend(self):
         """Test that simulate() can use jaxfne backend."""
-        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
         from dataclasses import replace
+
+        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
 
         # Create minimal model
         init = JTFNEInitConfig(n_neuron_per_column=20, seed=42, area_order=("V1", "V4"))
@@ -412,8 +414,9 @@ class TestSimulateWithJaxfneBackend:
 
     def test_simulate_backend_output_shapes(self):
         """Test that jaxfne backend produces correct output shapes."""
-        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
         from dataclasses import replace
+
+        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
 
         init = JTFNEInitConfig(n_neuron_per_column=20, seed=42, area_order=("V1", "V4"))
         model = construct(init)
@@ -447,8 +450,9 @@ class TestSimulateWithJaxfneBackend:
 
     def test_simulate_backend_legacy_vs_jaxfne(self):
         """Test that both backends produce reasonable outputs."""
-        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
         from dataclasses import replace
+
+        from jbiophysic.jtfne import JTFNEInitConfig, construct, default_cfg, simulate
 
         init = JTFNEInitConfig(n_neuron_per_column=20, seed=42, area_order=("V1",))
         model = construct(init)
