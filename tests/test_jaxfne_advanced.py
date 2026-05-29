@@ -153,7 +153,10 @@ class TestConnectionMotifs:
         # Basic sanity checks
         assert motifs["n_edges"] > 0
         assert motifs["reciprocal_pairs"] >= 0
-        assert motifs["e_to_e"] + motifs["e_to_i"] + motifs["i_to_e"] + motifs["i_to_i"] == motifs["n_edges"]
+        assert (
+            motifs["e_to_e"] + motifs["e_to_i"] + motifs["i_to_e"] + motifs["i_to_i"]
+            == motifs["n_edges"]
+        )
 
     def test_motif_exc_inh_breakdown(self, test_model):
         """Test that excitatory/inhibitory breakdown is consistent."""

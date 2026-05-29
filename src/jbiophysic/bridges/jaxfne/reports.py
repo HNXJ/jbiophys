@@ -61,9 +61,11 @@ def json_safe(obj: Any) -> Any:
         if isinstance(obj, (np.integer, np.floating)):
             val = obj.item()
             # Convert NaN/Inf to None
-            if isinstance(val, float):
-                if not (-1e308 < val < 1e308) or val != val:  # NaN or Inf check
-                    return None
+            if (
+                isinstance(val, float)
+                and (not (-1e308 < val < 1e308) or val != val)  # NaN or Inf check
+            ):
+                return None
             return val
     except ImportError:
         pass
@@ -133,9 +135,11 @@ def write_manifest(
             elif isinstance(obj, (list, tuple)):
                 for i, item in enumerate(obj):
                     check_nans(item, f"{path}[{i}]")
-            elif isinstance(obj, float):
-                if not (-1e308 < obj < 1e308) or obj != obj:  # NaN/Inf check
-                    raise ValueError(f"NaN/Inf detected at {path}: {obj}")
+            elif (
+                isinstance(obj, float)
+                and (not (-1e308 < obj < 1e308) or obj != obj)  # NaN/Inf check
+            ):
+                raise ValueError(f"NaN/Inf detected at {path}: {obj}")
 
         check_nans(safe_manifest)
 

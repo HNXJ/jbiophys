@@ -202,7 +202,10 @@ def hh_stability_report(
     stiffness_reason = ""
     if dt_ms > stiffness_dt_threshold_ms and g_Na_bar > g_L:
         stiffness_warning = True
-        stiffness_reason = f"dt={dt_ms} ms > {stiffness_dt_threshold_ms} ms and g_Na_bar={g_Na_bar} >> g_L={g_L}; potential instability"
+        stiffness_reason = (
+            f"dt={dt_ms} ms > {stiffness_dt_threshold_ms} ms and "
+            f"g_Na_bar={g_Na_bar} >> g_L={g_L}; potential instability"
+        )
 
     is_stable = state_check.all_finite and state_check.gates_in_bounds and not stiffness_warning
 

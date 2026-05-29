@@ -94,10 +94,11 @@ def hh_rate_functions(V: float) -> dict:
     tolerance = 1e-6
 
     # alpha_m: handle singularity at V = -40 mV
-    if abs(V + 40) < tolerance:
-        alpha_m = 1.0  # L'Hôpital's rule: lim (0.1 * 10) / (10 * exp(0)) = 1.0
-    else:
-        alpha_m = 0.1 * (V + 40) / (1.0 - np.exp(-(V + 40) / 10.0))
+    alpha_m = (
+        1.0  # L'Hôpital's rule: lim (0.1 * 10) / (10 * exp(0)) = 1.0
+        if abs(V + 40) < tolerance
+        else 0.1 * (V + 40) / (1.0 - np.exp(-(V + 40) / 10.0))
+    )
 
     beta_m = 4.0 * np.exp(-(V + 65) / 18.0)
 
@@ -107,10 +108,11 @@ def hh_rate_functions(V: float) -> dict:
     beta_h = 1.0 / (1.0 + np.exp(-(V + 35) / 10.0))
 
     # alpha_n: handle singularity at V = -55 mV
-    if abs(V + 55) < tolerance:
-        alpha_n = 0.1  # L'Hôpital's rule: lim (0.01 * 10) / (10 * exp(0)) = 0.1
-    else:
-        alpha_n = 0.01 * (V + 55) / (1.0 - np.exp(-(V + 55) / 10.0))
+    alpha_n = (
+        0.1  # L'Hôpital's rule: lim (0.01 * 10) / (10 * exp(0)) = 0.1
+        if abs(V + 55) < tolerance
+        else 0.01 * (V + 55) / (1.0 - np.exp(-(V + 55) / 10.0))
+    )
 
     beta_n = 0.125 * np.exp(-(V + 65) / 80.0)
 
