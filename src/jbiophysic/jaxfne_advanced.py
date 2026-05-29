@@ -18,7 +18,7 @@ import numpy as np
 
 # Guarded jaxfne import: required for this module, optional for the package.
 try:
-    import jaxfne as jtfne
+    import jaxfne as jtfne  # noqa: F401
     from jaxfne import EdgeList, EIGNetwork, standard_receptor_specs
 except ImportError as exc:
     raise ImportError(
