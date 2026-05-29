@@ -7,13 +7,6 @@ These tests require jaxfne to be installed:
 import numpy as np
 import pytest
 
-from jbiophysic.jaxfne_integration import (
-    jbiophysic_to_eig_network,
-    project_to_laminar_field,
-    simulate_with_jaxfne,
-)
-from jbiophysic.jtfne import JTFNEInitConfig, construct
-
 # Skip entire test module if jaxfne not available
 try:
     import jaxfne as jtfne  # noqa: F401
@@ -25,6 +18,14 @@ except ImportError:
 pytestmark = pytest.mark.skipif(
     not JAXFNE_AVAILABLE, reason="jaxfne not installed (pip install -e '.[jaxfne]')"
 )
+
+if JAXFNE_AVAILABLE:
+    from jbiophysic.jaxfne_integration import (
+        jbiophysic_to_eig_network,
+        project_to_laminar_field,
+        simulate_with_jaxfne,
+    )
+    from jbiophysic.jtfne import JTFNEInitConfig, construct
 
 
 @pytest.fixture

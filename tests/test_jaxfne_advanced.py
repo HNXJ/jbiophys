@@ -7,15 +7,6 @@ These tests require jaxfne to be installed:
 import numpy as np
 import pytest
 
-from jbiophysic.jaxfne_advanced import (
-    CustomReceptorSpec,
-    analyze_critical_neurons,
-    build_multi_area_edges,
-    compute_connection_motifs,
-    optimize_synaptic_weights,
-)
-from jbiophysic.jtfne import JTFNEInitConfig, construct
-
 # Skip entire test module if jaxfne not available
 try:
     import jaxfne as jtfne  # noqa: F401
@@ -27,6 +18,16 @@ except ImportError:
 pytestmark = pytest.mark.skipif(
     not JAXFNE_AVAILABLE, reason="jaxfne not installed (pip install -e '.[jaxfne]')"
 )
+
+if JAXFNE_AVAILABLE:
+    from jbiophysic.jaxfne_advanced import (
+        CustomReceptorSpec,
+        analyze_critical_neurons,
+        build_multi_area_edges,
+        compute_connection_motifs,
+        optimize_synaptic_weights,
+    )
+    from jbiophysic.jtfne import JTFNEInitConfig, construct
 
 
 @pytest.fixture
