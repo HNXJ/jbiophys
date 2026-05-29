@@ -23,7 +23,7 @@ import pandas as pd
 # Guarded jaxfne import: required for this module, optional for the package.
 try:
     import jaxfne as jtfne
-    from jaxfne import (
+    from jaxfne import (  # noqa: F401
         EdgeList,
         EIGNetwork,
         IzhikevichParams,
@@ -228,7 +228,7 @@ def _build_edges_from_connectivity(
     # Process local excitatory (E→all, AMPA)
     W_local_exc = W_parts["local_exc"]
     post, pre = np.where(W_local_exc != 0)
-    for p, q in zip(pre, post):
+    for p, q in zip(pre, post, strict=False):
         if cell_types[p] != "E":
             continue  # Skip non-E sources
         pre_indices.append(p)
@@ -240,7 +240,7 @@ def _build_edges_from_connectivity(
     # Process local inhibitory (I→all, GABA_A)
     W_local_inh = W_parts["local_inh"]
     post, pre = np.where(W_local_inh != 0)
-    for p, q in zip(pre, post):
+    for p, q in zip(pre, post, strict=False):
         if cell_types[p] == "E":
             continue  # Skip E sources
         pre_indices.append(p)
@@ -252,7 +252,7 @@ def _build_edges_from_connectivity(
     # Process feedforward (E→all, AMPA)
     W_ff = W_parts["feedforward"]
     post, pre = np.where(W_ff != 0)
-    for p, q in zip(pre, post):
+    for p, q in zip(pre, post, strict=False):
         pre_indices.append(p)
         post_indices.append(q)
         weights.append(W_ff[q, p])
@@ -262,7 +262,7 @@ def _build_edges_from_connectivity(
     # Process feedback (E→all, AMPA)
     W_fb = W_parts["feedback"]
     post, pre = np.where(W_fb != 0)
-    for p, q in zip(pre, post):
+    for p, q in zip(pre, post, strict=False):
         pre_indices.append(p)
         post_indices.append(q)
         weights.append(W_fb[q, p])

@@ -105,7 +105,7 @@ def compare_dtype_passive_membrane(
     g_L = 0.1  # nS
     E_L = -65.0  # mV
     C_m = 1.0  # pF
-    tau_m = C_m / g_L  # Time constant ~10 ms
+    C_m / g_L  # Time constant ~10 ms
 
     # Float32 simulation
     v32 = jnp.asarray(v_init, dtype=jnp.float32)

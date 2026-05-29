@@ -68,9 +68,8 @@ class TestDtypeComparison:
             if isinstance(value, (list, tuple)):
                 for item in value:
                     assert np.isfinite(item), f"{key}: {item} is not finite"
-            elif isinstance(value, (int, float)):
-                if isinstance(value, float):
-                    assert np.isfinite(value), f"{key}: {value} is not finite"
+            elif isinstance(value, (int, float)) and isinstance(value, float):
+                assert np.isfinite(value), f"{key}: {value} is not finite"
 
     def test_dtype_comparison_spike_counts_match(self):
         """Test that spike counts are similar between float32 and float64."""
