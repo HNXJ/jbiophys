@@ -148,7 +148,10 @@ def test_laminar_proxy_run_source_scale_mapping():
         )
         assert (
             manifest["source_calibration_status"] == expected_status
-        ), f"Scale {scale} should map to {expected_status}, got {manifest['source_calibration_status']}"
+        ), (
+            f"Scale {scale} should map to {expected_status}, "
+            f"got {manifest['source_calibration_status']}"
+        )
 
 
 def test_manifest_validates():
@@ -224,7 +227,8 @@ def test_write_manifest_sanitizes_nan_even_with_allow_nan():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         path = str(Path(tmpdir) / "test_manifest.json")
-        # json_safe() sanitizes NaN → None before json.dumps, so allow_nan=True has no effect on NaN values
+        # json_safe() sanitizes NaN → None before json.dumps, so
+        # allow_nan=True has no effect on NaN values
         result_path = write_manifest(manifest, path, allow_nan=True)
 
         # Read back

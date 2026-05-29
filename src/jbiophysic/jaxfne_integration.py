@@ -6,9 +6,12 @@ exponential synaptic kernel and laminar forward-field projection in place of
 jbiophysic's custom implementations.
 
 Architecture mapping:
-- jbiophysic neurons (per-neuron a,b,c,d in DataFrame) → jaxfne IzhikevichParams (population-level arrays)
-- jbiophysic connectivity (W_local_exc, W_local_inh, feedforward, feedback) → jaxfne EdgeList with receptor indices
-- jbiophysic TFNE forward-field solver → jaxfne.project_laminar_sources (Gaussian laminar proxy)
+- jbiophysic neurons (per-neuron a,b,c,d in DataFrame) → jaxfne IzhikevichParams
+  (population-level arrays)
+- jbiophysic connectivity (W_local_exc, W_local_inh, feedforward, feedback) →
+  jaxfne EdgeList with receptor indices
+- jbiophysic TFNE forward-field solver → jaxfne.project_laminar_sources
+  (Gaussian laminar proxy)
 """
 
 from __future__ import annotations
@@ -123,7 +126,10 @@ def jbiophysic_to_eig_network(
     # Convert positions to relative laminar depth [0, 1]
     z_m = positions_m[:, 2]
     z_min, z_max = z_m.min(), z_m.max()
-    z_depth_rel = (z_m - z_min) / (z_max - z_min + 1e-12) if z_max > z_min else jnp.ones_like(z_m) * 0.5
+    if z_max > z_min:
+        z_depth_rel = (z_m - z_min) / (z_max - z_min + 1e-12)
+    else:
+        z_depth_rel = jnp.ones_like(z_m) * 0.5
     positions_normalized = jnp.stack(
         [positions_m[:, 0], positions_m[:, 1], z_depth_rel],
         axis=1,
