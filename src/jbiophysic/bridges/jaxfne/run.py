@@ -441,7 +441,6 @@ def get_jaxfne_report(
     try:
         import jaxfne as jtfne
 
-        jaxfne_available = True
         jaxfne_version = get_installed_jaxfne_version()
     except ImportError as e:
         jaxfne_version = "unknown"
