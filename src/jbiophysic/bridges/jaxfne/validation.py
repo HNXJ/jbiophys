@@ -211,7 +211,10 @@ def validate_report(
         errors.append(f"Report truth_mode must be '{TRUTH_MODE}', got {report.get('truth_mode')}")
 
     if report.get("claim_level") != CLAIM_LEVEL:
-        errors.append(f"Report claim_level must be '{CLAIM_LEVEL}', got {report.get('claim_level')}")
+        errors.append(
+            f"Report claim_level must be '{CLAIM_LEVEL}', "
+            f"got {report.get('claim_level')}"
+        )
 
     if strict_mode and report.get("physical_amplitude_claim_allowed", False):
         errors.append("physical_amplitude_claim_allowed must be False (strict mode)")
